@@ -432,11 +432,11 @@ def load_skill_data(base_dir: Path) -> tuple[Any, dict, dict]:
     Returns (skill_index, name_map, textmap). All three are shared, read-only
     structures built once and reused for every avatar.
     """
-    skill_template = load_skill_template(str(base_dir / "AvatarSkillTemplateTb.json"))
+    skill_template = load_skill_template(str(base_dir / "data" / "AvatarSkillTemplateTb.json"))
     skill_index = build_skill_index(skill_template)
-    des_template = load_skill_template(str(base_dir / "AvatarSkillDesTemplateTb.json"))
+    des_template = load_skill_template(str(base_dir / "data" / "AvatarSkillDesTemplateTb.json"))
     name_map = build_explicit_name_map(des_template)
-    textmap = load_textmap(str(base_dir / "TextMap_ENTemplateTb.json"))
+    textmap = load_textmap(str(base_dir / "data" / "TextMap_ENTemplateTb.json"))
     return skill_index, name_map, textmap
 
 
@@ -609,15 +609,15 @@ def export_loadouts(profile: str, out_path: str | None = None) -> str:
     showcase = api["PlayerInfo"]["ShowcaseDetail"]
     avatars_list = showcase.get("AvatarList", [])
 
-    weapons = load_json(base_dir / "weapons.json")
-    equipments = load_json(base_dir / "equipments.json")
-    avatars = load_json(base_dir / "avatars.json")
-    locale_path = base_dir / "locale_en.json"
+    weapons = load_json(base_dir / "data" / "weapons.json")
+    equipments = load_json(base_dir / "data" / "equipments.json")
+    avatars = load_json(base_dir / "data" / "avatars.json")
+    locale_path = base_dir / "data" / "locale_en.json"
     loc: dict[str, str] = load_json(locale_path) if locale_path.exists() else {}
 
-    wl = load_template_table(base_dir / "WeaponLevelTemplateTb.json", WEAPON_LEVEL_FIELDS)
-    ws = load_template_table(base_dir / "WeaponStarTemplateTb.json", WEAPON_STAR_FIELDS)
-    el = load_template_table(base_dir / "EquipmentLevelTemplateTb.json", EQUIPMENT_LEVEL_FIELDS)
+    wl = load_template_table(base_dir / "data" / "WeaponLevelTemplateTb.json", WEAPON_LEVEL_FIELDS)
+    ws = load_template_table(base_dir / "data" / "WeaponStarTemplateTb.json", WEAPON_STAR_FIELDS)
+    el = load_template_table(base_dir / "data" / "EquipmentLevelTemplateTb.json", EQUIPMENT_LEVEL_FIELDS)
     skill_index, name_map, textmap = load_skill_data(base_dir)
 
     snapshots = []
@@ -632,7 +632,7 @@ def export_loadouts(profile: str, out_path: str | None = None) -> str:
         "avatars": snapshots,
         "panel_flat": {str(s["avatar_id"]): s["stats"] for s in snapshots},
     }
-    out_path = out_path or str(base_dir / "loadouts.json")
+    out_path = out_path or str(base_dir / "dumps" / "loadouts.json")
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, indent=2)
     return out_path
@@ -656,19 +656,19 @@ def main() -> None:
     showcase = api["PlayerInfo"]["ShowcaseDetail"]
     avatars_list = showcase.get("AvatarList", [])
 
-    weapons = load_json(base_dir / "weapons.json")
-    equipments = load_json(base_dir / "equipments.json")
-    avatars = load_json(base_dir / "avatars.json")
+    weapons = load_json(base_dir / "data" / "weapons.json")
+    equipments = load_json(base_dir / "data" / "equipments.json")
+    avatars = load_json(base_dir / "data" / "avatars.json")
 
-    locale_path = base_dir / "locale_en.json"
+    locale_path = base_dir / "data" / "locale_en.json"
     loc: dict[str, str] = load_json(locale_path) if locale_path.exists() else {}
 
 
     # Full growth tables (all rarities / levels / break levels) instead of the
     # previous single hard-coded Rarity-4 row, which crashed on A/B rank gear.
-    wl = load_template_table(base_dir / "WeaponLevelTemplateTb.json", WEAPON_LEVEL_FIELDS)
-    ws = load_template_table(base_dir / "WeaponStarTemplateTb.json", WEAPON_STAR_FIELDS)
-    el = load_template_table(base_dir / "EquipmentLevelTemplateTb.json", EQUIPMENT_LEVEL_FIELDS)
+    wl = load_template_table(base_dir / "data" / "WeaponLevelTemplateTb.json", WEAPON_LEVEL_FIELDS)
+    ws = load_template_table(base_dir / "data" / "WeaponStarTemplateTb.json", WEAPON_STAR_FIELDS)
+    el = load_template_table(base_dir / "data" / "EquipmentLevelTemplateTb.json", EQUIPMENT_LEVEL_FIELDS)
 
     skill_index, name_map, textmap = load_skill_data(base_dir)
 

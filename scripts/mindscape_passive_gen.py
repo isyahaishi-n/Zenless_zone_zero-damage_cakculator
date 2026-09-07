@@ -51,10 +51,10 @@ from wengine_passive_gen import (
     strip_mechanics, clean_text, split_sentences, PATTERNS,
 )
 
-TEMPLATE_FILE = "AvatarTalentTemplateTb.json"
-TEXTMAP_FILE = "TextMap_ENTemplateTb.json"
-OVERWRITE_FILE = "TextMap_ENOverwriteTemplateTb.json"
-AVATARS_FILE = "avatars.json"
+TEMPLATE_FILE = "data/AvatarTalentTemplateTb.json"
+TEXTMAP_FILE = "data/TextMap_ENTemplateTb.json"
+OVERWRITE_FILE = "data/TextMap_ENOverwriteTemplateTb.json"
+AVATARS_FILE = "data/avatars.json"
 OUT_FILE = "mindscape_mapped.json"
 
 ROWS_KEY = "MLOEFHJHCID"

@@ -1,6 +1,6 @@
 import json
 
-with open('avatars.json', encoding='utf-8') as f:
+with open('data/avatars.json', encoding='utf-8') as f:
     avatars = json.load(f)
 
 elems = set()

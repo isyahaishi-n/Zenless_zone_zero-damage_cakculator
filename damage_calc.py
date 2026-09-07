@@ -2,7 +2,7 @@
 damage_calc.py — ZZZ damage calculator: conditional toggle layer + formula
 damage final, kalibrasi ke ground truth 1086/2961 (Miyabi vs Tyrfing L60).
 
-Pipeline (lihat TODO_agent.md):
+Pipeline (lihat docs/TODO_agent.md):
   1. Load 3 file mapped yang udah evidence-based & tervalidasi:
      - wengine_passive_mapped.json  (95 W-Engine, effect per phase S1-S5)
      - drive_disc_mapped.json       (30 set, efek 4pc terstruktur)
@@ -27,7 +27,7 @@ Pipeline (lihat TODO_agent.md):
   4. aggregate_modifiers() gabungin semua yang enabled -> CombatModifiers.
   5. compute_final_damage() — formula tervalidasi (DEFmult/RESmult/CRIT).
 
-Formula (wiki ZZZ Damage page + wengine.md, tervalidasi manual 99.9%):
+Formula (wiki ZZZ Damage page + docs/wengine.md, tervalidasi manual 99.9%):
     ATK_combat = ATK_panel * (1 + Bonus%_cond) + Flat_cond
     DEF_eff    = DEF_enemy * (1 - PENratio%) * Π(1 - DEFignore_i%) - PEN_flat
     DEFmult    = LevelFactor(attacker_level) / (max(DEF_eff, 0) + LevelFactor(attacker_level))
@@ -59,19 +59,19 @@ def load_json(path: str):
         return json.load(f)
 
 
-def load_wengine_passives(path: str = "wengine_passive_mapped.json") -> dict:
+def load_wengine_passives(path: str = "data/mapped/wengine_passive_mapped.json") -> dict:
     """{weapon_id: entry} — entry punya name/rarity/profession/passive.effects."""
     data = load_json(path)
     return {w["id"]: w for w in data["weapons"]}
 
 
-def load_drive_disc_sets(path: str = "drive_disc_mapped.json") -> dict:
+def load_drive_disc_sets(path: str = "data/mapped/drive_disc_mapped.json") -> dict:
     """{set_name: entry} — entry punya bonus_2pc_raw/bonus_4pc_raw/effects_4pc."""
     data = load_json(path)
     return {s["name"]: s for s in data["sets"]}
 
 
-def load_mindscapes(path: str = "mindscape_mapped.json") -> dict:
+def load_mindscapes(path: str = "data/mapped/mindscape_mapped.json") -> dict:
     """{avatar_id: entry} — entry punya levels {"1"|"2"|"4"|"6": {...}}."""
     data = load_json(path)
     return {a["id"]: a for a in data["avatars"]}
@@ -613,7 +613,7 @@ class EnemyStats:
     stun_taken_pct: float = 0.0
 
 
-def load_level_factor_curve(path: str = "LevelCurveTemplateTb.json") -> dict:
+def load_level_factor_curve(path: str = "data/LevelCurveTemplateTb.json") -> dict:
     """Load the canonical attacker Level Factor curve.
 
     In the supplied LevelCurveTemplateTb dump, row Id=1000 is a curve whose
@@ -757,7 +757,7 @@ def compute_final_damage(
 # Kalibrasi ke ground truth (Miyabi vs Tyrfing L60) — full otomatis
 # ---------------------------------------------------------------------------
 
-def load_loadouts(path: str = "loadouts.json") -> dict:
+def load_loadouts(path: str = "dumps/loadouts.json") -> dict:
     """loadouts.json hasil export zzz_enka_stat_calc_multichar.py --export."""
     return load_json(path)
 
@@ -790,7 +790,7 @@ def run_calibration() -> bool:
               f"Basic Lv.{basic['level']} hit {hit1['name']} = {skill_mult}%")
     except FileNotFoundError:
         print("[1b] loadouts.json nggak ada — fallback hardcode "
-              "(jalanin: python zzz_enka_stat_calc_multichar.py 1303558818.json --export)")
+              "(jalanin: python zzz_enka_stat_calc_multichar.py dumps/1303558818.json --export)")
         panel = {"ATK": 2715.64, "CRIT Rate": 51.4, "CRIT DMG": 142.8,
                  "PEN Ratio": 24.0, "PEN": 18, "Ice DMG": 30.0}
         skill_mult = 54.4

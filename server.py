@@ -6,7 +6,7 @@ Endpoints:
   GET /static/<file>     -> site assets
   GET /api/data          -> combined game data (avatars, weapons, discs, locale, ...)
   GET /api/uid/<uid>     -> proxies https://enka.network/api/zzz/uid/<uid>
-  GET /api/local         -> bundled sample showcase (1303558818.json)
+  GET /api/local         -> bundled sample showcase (dumps/1303558818.json)
   GET /api/monsters      -> list monster utk picker (name/class/RES/icon; icon slug pre-resolved)
   POST /api/calc         -> hitung stat panel + damage per skill utk 1 karakter showcase
                             body: {"showcase": <enka json>, "avatar_id": 1091,
@@ -32,7 +32,7 @@ BASE_DIR = Path(__file__).resolve().parent
 SITE_DIR = BASE_DIR / "site"
 CACHE_DIR = BASE_DIR / ".imgcache"
 MONSTER_CACHE_DIR = CACHE_DIR / "monster"
-SAMPLE = BASE_DIR / "1303558818.json"
+SAMPLE = BASE_DIR / "dumps" / "1303558818.json"
 ENKA_API = "https://enka.network/api/zzz/uid/"
 ENKA_UI = "https://enka.network/ui/zzz/"
 NANOKA_ASSET = "https://static.nanoka.cc/assets/zzz/"
@@ -79,15 +79,15 @@ def load_template_table(path: Path, field_map: dict) -> list[dict]:
 
 def build_game_data() -> dict:
     return {
-        "avatars": load_json(BASE_DIR / "avatars.json"),
-        "weapons": load_json(BASE_DIR / "weapons.json"),
-        "equipments": load_json(BASE_DIR / "equipments.json"),
-        "locale": load_json(BASE_DIR / "locale_en.json"),
-        "mindscapes": load_json(BASE_DIR / "mindscapes.json"),
-        "mindscapeProps": load_json(BASE_DIR / "mindscape_props.json"),
-        "weaponLevels": load_template_table(BASE_DIR / "WeaponLevelTemplateTb.json", WEAPON_LEVEL_FIELDS),
-        "weaponStars": load_template_table(BASE_DIR / "WeaponStarTemplateTb.json", WEAPON_STAR_FIELDS),
-        "equipmentLevels": load_template_table(BASE_DIR / "EquipmentLevelTemplateTb.json", EQUIPMENT_LEVEL_FIELDS),
+        "avatars": load_json(BASE_DIR / "data" / "avatars.json"),
+        "weapons": load_json(BASE_DIR / "data" / "weapons.json"),
+        "equipments": load_json(BASE_DIR / "data" / "equipments.json"),
+        "locale": load_json(BASE_DIR / "data" / "locale_en.json"),
+        "mindscapes": load_json(BASE_DIR / "data" / "mindscapes.json"),
+        "mindscapeProps": load_json(BASE_DIR / "data" / "mindscape_props.json"),
+        "weaponLevels": load_template_table(BASE_DIR / "data" / "WeaponLevelTemplateTb.json", WEAPON_LEVEL_FIELDS),
+        "weaponStars": load_template_table(BASE_DIR / "data" / "WeaponStarTemplateTb.json", WEAPON_STAR_FIELDS),
+        "equipmentLevels": load_template_table(BASE_DIR / "data" / "EquipmentLevelTemplateTb.json", EQUIPMENT_LEVEL_FIELDS),
     }
 
 
@@ -117,17 +117,17 @@ def build_calc_context() -> dict:
     MONSTER_DB = monster_data.MonsterDB(BASE_DIR)
     ctx = {
         "calc": calc, "dc": dc, "monster_db": MONSTER_DB,
-        "weapons": calc.load_json(BASE_DIR / "weapons.json"),
-        "equipments": calc.load_json(BASE_DIR / "equipments.json"),
-        "avatars": calc.load_json(BASE_DIR / "avatars.json"),
-        "locale": calc.load_json(BASE_DIR / "locale_en.json"),
-        "wl": calc.load_template_table(BASE_DIR / "WeaponLevelTemplateTb.json", calc.WEAPON_LEVEL_FIELDS),
-        "ws": calc.load_template_table(BASE_DIR / "WeaponStarTemplateTb.json", calc.WEAPON_STAR_FIELDS),
-        "el": calc.load_template_table(BASE_DIR / "EquipmentLevelTemplateTb.json", calc.EQUIPMENT_LEVEL_FIELDS),
+        "weapons": calc.load_json(BASE_DIR / "data" / "weapons.json"),
+        "equipments": calc.load_json(BASE_DIR / "data" / "equipments.json"),
+        "avatars": calc.load_json(BASE_DIR / "data" / "avatars.json"),
+        "locale": calc.load_json(BASE_DIR / "data" / "locale_en.json"),
+        "wl": calc.load_template_table(BASE_DIR / "data" / "WeaponLevelTemplateTb.json", calc.WEAPON_LEVEL_FIELDS),
+        "ws": calc.load_template_table(BASE_DIR / "data" / "WeaponStarTemplateTb.json", calc.WEAPON_STAR_FIELDS),
+        "el": calc.load_template_table(BASE_DIR / "data" / "EquipmentLevelTemplateTb.json", calc.EQUIPMENT_LEVEL_FIELDS),
         "skill_index": None, "name_map": None, "textmap": None,
-        "wengines": dc.load_wengine_passives(str(BASE_DIR / "wengine_passive_mapped.json")),
-        "sets": dc.load_drive_disc_sets(str(BASE_DIR / "drive_disc_mapped.json")),
-        "mindscapes": dc.load_mindscapes(str(BASE_DIR / "mindscape_mapped.json")),
+        "wengines": dc.load_wengine_passives(str(BASE_DIR / "data" / "mapped" / "wengine_passive_mapped.json")),
+        "sets": dc.load_drive_disc_sets(str(BASE_DIR / "data" / "mapped" / "drive_disc_mapped.json")),
+        "mindscapes": dc.load_mindscapes(str(BASE_DIR / "data" / "mapped" / "mindscape_mapped.json")),
     }
     skill_index, name_map, textmap = calc.load_skill_data(BASE_DIR)
     ctx["skill_index"], ctx["name_map"], ctx["textmap"] = skill_index, name_map, textmap

@@ -100,7 +100,7 @@ def load_locs(path: str, lang: str = "en") -> dict:
         return json.load(f).get(lang, {})
 
 
-def load_textmap(path: str = "TextMap_ENTemplateTb.json") -> dict:
+def load_textmap(path: str = "data/TextMap_ENTemplateTb.json") -> dict:
     """Load TextMap EN (flat dict {text_key: english_text}, ~411k entries).
 
     Key-nya langsung string deskriptif kayak 'Anbi_Skill_Normal_Title' --
@@ -114,7 +114,7 @@ def load_textmap(path: str = "TextMap_ENTemplateTb.json") -> dict:
     import os
     with open(path, "r", encoding="utf-8") as f:
         textmap = json.load(f)
-    overwrite_path = os.path.join(os.path.dirname(path) or ".", "TextMap_ENOverwriteTemplateTb.json")
+    overwrite_path = os.path.join(os.path.dirname(path) or ".", "data/TextMap_ENOverwriteTemplateTb.json")
     if os.path.exists(overwrite_path):
         with open(overwrite_path, "r", encoding="utf-8") as f:
             textmap.update(json.load(f))
@@ -272,11 +272,11 @@ def classify_hidden_hits(skill_template: dict = None, des_template: dict = None,
       - unique_hidden     : lainnya (varian enhanced / combo extension)
     """
     if skill_template is None:
-        skill_template = load_skill_template("AvatarSkillTemplateTb.json")
+        skill_template = load_skill_template("data/AvatarSkillTemplateTb.json")
     if des_template is None:
-        des_template = load_skill_template("AvatarSkillDesTemplateTb.json")
+        des_template = load_skill_template("data/AvatarSkillDesTemplateTb.json")
     if avatars is None:
-        with open("avatars.json", "r", encoding="utf-8") as f:
+        with open("data/avatars.json", "r", encoding="utf-8") as f:
             avatars = json.load(f)
     playable = set(int(k) for k in avatars.keys())
 
@@ -349,9 +349,9 @@ def main():
                   f"daze {r['daze_base_pct']:g}% -> {r['category']}{dup}")
         return
 
-    skill_template = load_skill_template("AvatarSkillTemplateTb.json")
+    skill_template = load_skill_template("data/AvatarSkillTemplateTb.json")
     index = build_skill_index(skill_template)
-    des_template = load_skill_template("AvatarSkillDesTemplateTb.json")
+    des_template = load_skill_template("data/AvatarSkillDesTemplateTb.json")
     name_map = build_explicit_name_map(des_template)
     textmap = load_textmap()
 

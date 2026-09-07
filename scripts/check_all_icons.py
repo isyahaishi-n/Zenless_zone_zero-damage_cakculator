@@ -13,7 +13,7 @@ import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-BASE = Path(__file__).resolve().parent
+BASE = Path(__file__).resolve().parent.parent / "data"
 
 
 def collect_icons():

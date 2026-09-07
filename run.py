@@ -192,19 +192,19 @@ def main():
     print(f"    {len(avatars_list)} karakter di-showcase.")
 
     print("[2] Load data pendukung...")
-    weapons = calc.load_json(base_dir / "weapons.json")
-    equipments = calc.load_json(base_dir / "equipments.json")
-    avatars = calc.load_json(base_dir / "avatars.json")
-    locale_path = base_dir / "locale_en.json"
+    weapons = calc.load_json(base_dir / "data" / "weapons.json")
+    equipments = calc.load_json(base_dir / "data" / "equipments.json")
+    avatars = calc.load_json(base_dir / "data" / "avatars.json")
+    locale_path = base_dir / "data" / "locale_en.json"
     loc = calc.load_json(locale_path) if locale_path.exists() else {}
-    wl = calc.load_template_table(base_dir / "WeaponLevelTemplateTb.json", calc.WEAPON_LEVEL_FIELDS)
-    ws = calc.load_template_table(base_dir / "WeaponStarTemplateTb.json", calc.WEAPON_STAR_FIELDS)
-    el = calc.load_template_table(base_dir / "EquipmentLevelTemplateTb.json", calc.EQUIPMENT_LEVEL_FIELDS)
+    wl = calc.load_template_table(base_dir / "data" / "WeaponLevelTemplateTb.json", calc.WEAPON_LEVEL_FIELDS)
+    ws = calc.load_template_table(base_dir / "data" / "WeaponStarTemplateTb.json", calc.WEAPON_STAR_FIELDS)
+    el = calc.load_template_table(base_dir / "data" / "EquipmentLevelTemplateTb.json", calc.EQUIPMENT_LEVEL_FIELDS)
     skill_index, name_map, textmap = calc.load_skill_data(base_dir)
 
-    wengines = dc.load_wengine_passives(str(base_dir / "wengine_passive_mapped.json"))
-    sets = dc.load_drive_disc_sets(str(base_dir / "drive_disc_mapped.json"))
-    mindscapes = dc.load_mindscapes(str(base_dir / "mindscape_mapped.json"))
+    wengines = dc.load_wengine_passives(str(base_dir / "data" / "mapped" / "wengine_passive_mapped.json"))
+    sets = dc.load_drive_disc_sets(str(base_dir / "data" / "mapped" / "drive_disc_mapped.json"))
+    mindscapes = dc.load_mindscapes(str(base_dir / "data" / "mapped" / "mindscape_mapped.json"))
 
     try:
         enemy = get_enemy_stats(args.enemy, level=args.enemy_level)

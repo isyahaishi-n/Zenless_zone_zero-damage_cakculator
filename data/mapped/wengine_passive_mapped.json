@@ -6,13 +6,13 @@
   "local_dataset": {
     "weapon_count": 95,
     "source_files": [
-      "WeaponTalentTemplateTb.json",
-      "TextMap_ENTemplateTb.json",
-      "TextMap_ENOverwriteTemplateTb.json",
-      "weapons.json"
+      "/workspaces/booger_aidszzz/data/WeaponTalentTemplateTb.json",
+      "/workspaces/booger_aidszzz/data/TextMap_ENTemplateTb.json",
+      "/workspaces/booger_aidszzz/data/TextMap_ENOverwriteTemplateTb.json",
+      "/workspaces/booger_aidszzz/data/weapons.json"
     ],
     "template_source_schema": {
-      "template_file": "WeaponTalentTemplateTb.json",
+      "template_file": "/workspaces/booger_aidszzz/data/WeaponTalentTemplateTb.json",
       "weapon_id_field": "COEEBFOBGND",
       "phase_field": "APAEMLCPFID",
       "title_key_field": "CLCDDKNHEMN",

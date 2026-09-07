@@ -36,12 +36,15 @@ CLCDDKNHEMN berisi ...Title..., POLEJGCKKFI berisi ...Des... .)
 import json
 import re
 import sys
+from pathlib import Path
 
-TEMPLATE_FILE = "WeaponTalentTemplateTb.json"
-TEXTMAP_FILE = "TextMap_ENTemplateTb.json"
-OVERWRITE_FILE = "TextMap_ENOverwriteTemplateTb.json"
-WEAPONS_FILE = "weapons.json"
-OUT_FILE = "wengine_passive_mapped.json"
+# Path relatif ke root repo (script ini jalan dari scripts/, data di ../data/)
+_ROOT = Path(__file__).resolve().parent.parent
+TEMPLATE_FILE = str(_ROOT / "data" / "WeaponTalentTemplateTb.json")
+TEXTMAP_FILE = str(_ROOT / "data" / "TextMap_ENTemplateTb.json")
+OVERWRITE_FILE = str(_ROOT / "data" / "TextMap_ENOverwriteTemplateTb.json")
+WEAPONS_FILE = str(_ROOT / "data" / "weapons.json")
+OUT_FILE = str(_ROOT / "data" / "mapped" / "wengine_passive_mapped.json")
 
 ROWS_KEY = "MLOEFHJHCID"
 

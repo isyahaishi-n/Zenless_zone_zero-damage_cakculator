@@ -1,5 +1,5 @@
 """
-Core Skill (SkillType 5) lookup — me-resolve open item #2 dari readme2.md.
+Core Skill (SkillType 5) lookup — me-resolve open item #2 dari docs/readme2.md.
 
 Sumber data (semua CONFIRMED, diverifikasi ke Prydwen utk Miyabi & Anby):
 - `AvatarPassiveSkillTemplateTb.json` (datamine git.mero.moe) — 58 karakter
@@ -30,7 +30,7 @@ Ekuivalensi: field `CoreEnhancementProps` di avatars.json (Enka store)
 BERISI NILAI YANG SAMA persis (index 0 = rank 1/base zero). File datamine
 lebih kaya (ada desc key + cost + unlock level).
 
-Mystery ID dari readme3 (SUDAH TERPECAHKAN, bukan foreign key):
+Mystery ID dari docs/readme3 (SUDAH TERPECAHKAN, bukan foreign key):
 - ACOLKGPPGKK (410910 dll) = 410000 + (avatar_id % 1000) * 10 — ID turunan
   untuk UI config, bukan pointer ke tabel numerik.
 - ONMHBHPOLHI (12254028 dll) = index sekuensial per karakter (urutan rilis,
@@ -66,12 +66,12 @@ PROPERTY_INFO = {
 MAX_RANK = 7
 
 
-def load_passive_template(path: str = "AvatarPassiveSkillTemplateTb.json") -> dict:
+def load_passive_template(path: str = "data/AvatarPassiveSkillTemplateTb.json") -> dict:
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
-def load_property_template(path: str = "PropertyTemplateTb.json") -> dict:
+def load_property_template(path: str = "data/PropertyTemplateTb.json") -> dict:
     with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
 
@@ -183,8 +183,8 @@ def compute_final_stats(avatars_entry: dict, level: int, promotion: int, rank: i
 def main():
     passive = load_passive_template()
     core_index = build_core_index(passive)
-    textmap = json.load(open("TextMap_ENTemplateTb.json", encoding="utf-8"))
-    avatars = json.load(open("avatars.json", encoding="utf-8"))
+    textmap = json.load(open("data/TextMap_ENTemplateTb.json", encoding="utf-8"))
+    avatars = json.load(open("data/avatars.json", encoding="utf-8"))
 
     print(f"Indexed {len(core_index)} avatars (core skill ranks 2-{MAX_RANK}).")
 
@@ -231,7 +231,7 @@ def main():
 
     print()
     print("=" * 60)
-    print("TEST 4: Mystery ID derivation (readme3 clue)")
+    print("TEST 4: Mystery ID derivation (docs/readme3 clue)")
     print("=" * 60)
     for aid, acol, onmh in ((1091, 410910, 12254028), (1011, 410110, 12254004)):
         derived = 410000 + (aid % 1000) * 10

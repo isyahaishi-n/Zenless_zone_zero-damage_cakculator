@@ -6,13 +6,13 @@
   "local_dataset": {
     "avatar_count": 58,
     "source_files": [
-      "data/AvatarTalentTemplateTb.json",
-      "data/TextMap_ENTemplateTb.json",
-      "data/TextMap_ENOverwriteTemplateTb.json",
-      "data/avatars.json"
+      "AvatarTalentTemplateTb.json",
+      "TextMap_ENTemplateTb.json",
+      "TextMap_ENOverwriteTemplateTb.json",
+      "avatars.json"
     ],
     "template_source_schema": {
-      "template_file": "data/AvatarTalentTemplateTb.json",
+      "template_file": "AvatarTalentTemplateTb.json",
       "avatar_id_field": "PJABHBNCJOI",
       "level_field": "PJBKBALOBEH",
       "title_key_field": "PADNNKFLNLG",

@@ -107,7 +107,7 @@ def _load_table(path):
     return data["MLOEFHJHCID"]
 
 
-def load_curves(path="LevelCurveTemplateTb.json"):
+def load_curves(path="data/LevelCurveTemplateTb.json"):
     """{curve_id: [L1, L2, ...]} — dipakai buat scaling DEF/HP per level."""
     rows = _load_table(path)
     return {r["DALBKGGEJEF"]: r["JMIKNDKIMPH"] for r in rows}
@@ -124,16 +124,16 @@ class MonsterDB:
 
     def __init__(self, base_dir="."):
         base = Path(base_dir)
-        self.curves = load_curves(str(base / "LevelCurveTemplateTb.json"))
-        with open(base / "TextMap_ENTemplateTb.json", "r", encoding="utf-8") as f:
+        self.curves = load_curves(str(base / "data" / "LevelCurveTemplateTb.json"))
+        with open(base / "data" / "TextMap_ENTemplateTb.json", "r", encoding="utf-8") as f:
             self.textmap = json.load(f)
-        self.config_rows = _load_table(str(base / "MonsterConfigTemplateTb.json"))
-        self.sub_rows = _load_table(str(base / "MonsterSubTemplateTb.json"))
+        self.config_rows = _load_table(str(base / "data" / "MonsterConfigTemplateTb.json"))
+        self.sub_rows = _load_table(str(base / "data" / "MonsterSubTemplateTb.json"))
 
         # Sub row id yang merupakan HASIS upgrade (varian challenge/elite) —
         # dikecualikan dari resolusi varian utama. Dari MonsterUpgradeTemplateTb:
         # {base_sub_id: upgraded_sub_id}; kita simang set hasil upgrade.
-        upgrade_pairs = _load_table(str(base / "MonsterUpgradeTemplateTb.json"))
+        upgrade_pairs = _load_table(str(base / "data" / "MonsterUpgradeTemplateTb.json"))
         self._upgraded_sub_ids = {r["FIMGJKPCKFO"] for r in upgrade_pairs}
 
         # name (lowercase) -> [config ids], plus config id -> codename
@@ -163,7 +163,7 @@ class MonsterDB:
         # Tag klasifikasi (size/rank/faction/rarity) buat sort UI —
         # digenerate dari zzz-hakushin-data (join by CodeName) ke
         # monster_tags.json. Optional: kalau file gak ada, field tetap None.
-        tags_path = base / "monster_tags.json"
+        tags_path = base / "data" / "mapped" / "monster_tags.json"
         self._tags = {}
         if tags_path.exists():
             with open(tags_path, "r", encoding="utf-8") as f:
