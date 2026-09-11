@@ -85,6 +85,7 @@ def build_game_data() -> dict:
         "locale": load_json(BASE_DIR / "data" / "locale_en.json"),
         "mindscapes": load_json(BASE_DIR / "data" / "mindscapes.json"),
         "mindscapeProps": load_json(BASE_DIR / "data" / "mindscape_props.json"),
+        "driveDiscSets": load_json(BASE_DIR / "data" / "mapped" / "drive_disc_mapped.json"),
         "weaponLevels": load_template_table(BASE_DIR / "data" / "WeaponLevelTemplateTb.json", WEAPON_LEVEL_FIELDS),
         "weaponStars": load_template_table(BASE_DIR / "data" / "WeaponStarTemplateTb.json", WEAPON_STAR_FIELDS),
         "equipmentLevels": load_template_table(BASE_DIR / "data" / "EquipmentLevelTemplateTb.json", EQUIPMENT_LEVEL_FIELDS),

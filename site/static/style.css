@@ -465,11 +465,12 @@ img { -webkit-user-drag: none; user-select: none; }
 
 main#results,
 .results {
-  max-width: 1280px;
+  max-width: 1024px;
   margin: 0 auto;
   padding: 24px 22px 60px;
 }
 .results-bar { margin: 0 -22px; }
+.results-bar .brand { margin-left: auto; }
 
 .status {
   margin: 0 0 18px;
@@ -601,8 +602,11 @@ main#results,
 .role-swiper {
   display: flex;
   gap: 8px;
-  margin: 0 0 16px;
-  padding: 6px 2px;
+  width: calc(100% - 72px);
+  height: 40px;
+  align-items: center;
+  margin: 4px auto 12px;
+  padding: 0 2px;
   overflow-x: auto;
   scrollbar-width: thin;
 }
@@ -610,35 +614,42 @@ main#results,
 .role-swiper-item {
   position: relative;
   flex: none;
-  width: 110px;
-  height: 42px;
+  width: 111px;
+  height: 40px;
   cursor: pointer;
   user-select: none;
-  border: 1.5px solid var(--line-1);
-  border-radius: 6px;
-  overflow: hidden;
-  background: var(--bg-2);
-  transition: border-color .15s;
+  background: none;
+  transition: filter .15s;
 }
 .role-swiper-item img {
+  position: relative;
+  z-index: 1;
+  display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: top center;
-  display: block;
-  opacity: .55;
+  object-position: center 45%;
+  clip-path: polygon(12% 0, 99% 0, 86% 100%, 0 100%);
+  opacity: .6;
   transition: opacity .15s;
+  filter: grayscale(.25);
 }
-.role-swiper-item:hover { border-color: var(--line-2); }
-.role-swiper-item:hover img { opacity: .8; }
-.role-swiper-item.selected { border-color: var(--gradient-yellow); }
-.role-swiper-item.selected img { opacity: 1; }
-.role-swiper-item.selected::after {
+.role-swiper-item::before {
   content: "";
   position: absolute;
-  inset: 0;
-  background: url('/static/hoyolab/card-selected-bg.1059d6ea.png') no-repeat left top / 100% 100%;
+  left: -1px;
+  top: -1px;
+  width: 113px;
+  height: 41px;
+  background: url('/static/hoyolab/card-bg.0e12ef65.png') no-repeat left top / 100% 100%;
+  z-index: 2;
   pointer-events: none;
+}
+.role-swiper-item:hover img { opacity: .85; }
+.role-swiper-item.selected { filter: drop-shadow(0 0 6px rgba(255, 245, 0, .35)); }
+.role-swiper-item.selected img { opacity: 1; filter: none; }
+.role-swiper-item.selected::before {
+  background-image: url('/static/hoyolab/card-selected-bg.1059d6ea.png');
 }
 
 /* ---- role detail layout ---- */
@@ -662,12 +673,25 @@ main#results,
   transition: background .4s ease;
 }
 
-.role-portrait {
+/* ---- hero: portrait + name + property panel (battle-records geometry) ---- */
+
+.role-hero {
   position: relative;
-  width: 100%;
-  max-width: 589px;
-  aspect-ratio: 589 / 340;
-  margin: 16px 0 0 16px;
+  z-index: 1;
+  padding: 16px;
+}
+
+.role-infos {
+  position: relative;
+  height: 464px;
+}
+
+.role-portrait {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 589px;
+  height: 340px;
   border-radius: 8px 8px 26px 8px;
   overflow: hidden;
   z-index: 1;
@@ -689,42 +713,35 @@ main#results,
   pointer-events: none;
 }
 .marquee-name {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
+  margin-top: 20px;
   white-space: nowrap;
+  display: inline-block;
+  text-align: center;
   font-family: var(--font-display);
   font-style: italic;
-  font-size: clamp(80px, 18vw, 220px);
-  line-height: 1;
-  letter-spacing: 8px;
+  font-size: 300px;
+  line-height: 300px;
+  letter-spacing: 12px;
   text-transform: uppercase;
   color: rgba(255, 255, 255, .07);
-  z-index: -1;
+  animation: marqueeAnim 16s infinite linear;
+}
+@keyframes marqueeAnim {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
 }
 
-/* ---- infos container (stats panel) ---- */
-
-.role-main {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  grid-template-columns: 589px minmax(640px, 1fr);
-  gap: 16px;
-  padding: 16px;
-  align-items: start;
-}
-
+/* name + meta strip (bottom-left of hero) */
 .role-base {
-  position: relative;
-  margin-top: 10px;
-  padding-left: 10px;
+  position: absolute;
+  left: 0;
+  top: 372px;
+  z-index: 2;
 }
 
 .role-name-lg {
   font-family: var(--font-display);
-  font-size: 32px;
+  font-size: 28px;
   letter-spacing: 2px;
   color: var(--color-white);
   line-height: 1.05;
@@ -744,11 +761,16 @@ main#results,
 
 .role-meta .rank-tag { color: var(--gradient-yellow); }
 
+/* property panel (top-right of hero) */
 .property-info {
   list-style: none;
-  margin: 14px 0 0;
+  margin: 0;
   padding: 4px 0;
-  max-height: 414px;
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 351px;
+  height: 414px;
   overflow-y: auto;
   background: #161616;
   border-radius: 8px 11px 35px 8px;
@@ -757,7 +779,7 @@ main#results,
 .property-info::-webkit-scrollbar-thumb { background: rgba(255,255,255,.16); border-radius: 36px; border: 4px solid #333534; }
 
 .property-info > li {
-  padding: 11px 8px 11px 12px;
+  padding: 11px 5px 11px 8px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -800,13 +822,27 @@ main#results,
   font-variant-numeric: tabular-nums;
 }
 
+/* ---- main grid: left hero col + right gear/skills col ---- */
+
+.role-main {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 589px minmax(0, 1fr);
+  gap: 16px;
+  padding: 0 16px 16px;
+  align-items: start;
+}
+
 /* ---- equipment section (battle records) ---- */
 
 .equipment-info {
-  margin-top: 6px;
+  position: relative;
+  min-height: 470px;
   background: #2a2a2a;
-  border-radius: 0 0 var(--radius-card) 0;
+  border-radius: 16px 16px 0 0;
   overflow: hidden;
+  grid-column: 1 / -1;
 }
 
 .equipment-info h2, .skill-info h2 {
@@ -831,8 +867,9 @@ main#results,
 }
 
 .suit-effects {
-  padding: 10px 16px;
-  border-bottom: 1px solid #1d1f1e;
+  box-sizing: border-box;
+  width: 430px;
+  padding: 12px 16px;
 }
 .suit-effects h3 {
   margin: 0 0 8px;
@@ -844,33 +881,49 @@ main#results,
 .suit-effects ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .suit-effects li > div {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
-  padding: 8px 12px;
+  padding: 10px 12px;
   background: #1d1f1e;
   border-radius: 6px;
 }
 .suit-effects .suit-texts { flex: 1; min-width: 0; }
 .suit-effects .suit-texts p { margin: 0; font-size: 12.5px; line-height: 1.45; }
-.suit-effects .suit-texts p:first-child { color: #fff; font-weight: 600; }
-.suit-effects .suit-texts p:last-child { color: rgba(255, 255, 255, .55); }
+.suit-effects .suit-name { color: #fff; font-weight: 600; }
+.suit-effects .suit-count { color: var(--gradient-yellow); margin-left: 4px; font-size: 11px; }
+.suit-effects .suit-desc { color: rgba(255, 255, 255, .6); margin-top: 5px !important; }
+.suit-effects .pc-tag {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: #333;
+  color: var(--gradient-yellow);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .5px;
+  vertical-align: middle;
+}
 .suit-effects img { width: 30px; height: 32px; flex: none; }
 
-/* equipment hex layout */
-
+/* equipment hex layout — battle records coordinates (220x205 @ scale 1.96) */
 .equipment-info .main-content {
-  position: relative;
-  width: 431px;
-  height: 402px;
-  margin: 12px auto 16px;
+  position: absolute;
+  width: 220px;
+  height: 205px;
+  top: 44px;
+  right: 56px;
   background: url('/static/hoyolab/equipment-main-content-bg.7de6072a.png') no-repeat center center / 100% 100%;
+  transform: scale(1.96);
+  transform-origin: top right;
+  z-index: 10;
 }
 .equipment-info .main-content .mc-bg { display: none; }
 
 .weapon-info {
   position: absolute;
-  width: 143px;
-  height: 143px;
+  width: 73px;
+  height: 73px;
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
@@ -879,14 +932,14 @@ main#results,
 }
 .weapon-info .bg {
   position: absolute;
-  width: 123px;
-  height: 33px;
-  left: 10px;
-  bottom: 12px;
+  width: 63px;
+  height: 17px;
+  left: 5px;
+  bottom: 6px;
   z-index: 12;
 }
 .weapon-info .icon {
-  width: 106px;
+  width: 54px;
   height: auto;
   display: block;
   position: absolute;
@@ -900,20 +953,20 @@ main#results,
   left: 50%;
   transform: translateX(-50%);
   display: block;
-  width: 78px;
+  width: 40px;
   height: auto;
-  bottom: 24px;
+  bottom: 12px;
   z-index: 14;
 }
 .weapon-info .level {
   position: absolute;
   font-weight: 700;
-  font-size: 16px;
+  font-size: 8px;
   color: #c7c7c7;
   width: 100%;
   text-align: center;
   left: 0;
-  bottom: 12px;
+  bottom: 6px;
   z-index: 14;
   text-shadow: #000 1px 0 0, #000 0 1px 0, #000 -1px 0 0, #000 0 -1px 0;
 }
@@ -931,41 +984,45 @@ main#results,
   width: 51px;
   height: 50px;
   object-fit: contain;
+  border-radius: 50%;
 }
 .equip-info .level {
   font-weight: 700;
-  font-size: 10px;
+  font-size: 8px;
   color: #c7c7c7;
   position: absolute;
   z-index: 13;
-  top: 40px;
+  top: 39px;
   left: 50%;
   transform: translateX(-50%);
   text-shadow: #000 1px 0 0, #000 0 1px 0, #000 -1px 0 0, #000 0 -1px 0;
 }
 .equip-info .bg {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 0;
+  left: 0;
+  top: 0;
+  z-index: 12;
+  width: 67px;
+  height: 58px;
 }
 
-/* slot placement — battle records coordinates (110x102 scaled 1.96) */
-.equip-info-1 { top: 10px;   left: 61px;  padding: 8px 8px 8px 24px; }
-.equip-info-2 { top: 128px;  left: 5px;   padding: 8px 8px 8px 24px; }
-.equip-info-3 { bottom: 40px; left: 61px;  padding: 8px 24px 8px 8px; }
-.equip-info-4 { bottom: 40px; right: 61px; padding: 8px 24px 8px 8px; }
-.equip-info-5 { top: 128px;  right: 5px;  padding: 8px 24px 8px 8px; }
-.equip-info-6 { top: 10px;   right: 61px; padding: 8px 24px 8px 8px; }
+/* slot placement — battle records coordinates */
+.equip-info-1 { top: 5px;   left: 31px;   padding: 4px 4px 4px 12px; }
+.equip-info-2 { top: 65.5px; left: 2.5px;  padding: 4px 4px 4px 12px; }
+.equip-info-3 { bottom: 20.5px; left: 31px;  padding: 4px 4px 4px 12px; }
+.equip-info-4 { bottom: 20.5px; right: 31px; padding: 4px 12px 4px 4px; }
+.equip-info-5 { top: 66px;  right: 2.5px; padding: 4px 12px 4px 4px; }
+.equip-info-6 { top: 5px;   right: 31px;  padding: 4px 12px 4px 4px; }
 
 /* ---- skills (battle records) ---- */
 
 .skill-info {
+  position: relative;
   margin-top: 16px;
   background: #2a2a2a;
-  border-radius: 0 0 var(--radius-card) 0;
+  border-radius: 16px 16px 0 0;
   overflow: hidden;
+  grid-column: 1 / -1;
 }
 
 .skill-info > ul {
@@ -973,10 +1030,11 @@ main#results,
   justify-content: space-between;
   align-items: center;
   gap: 10px;
-  padding: 16px;
+  height: 188px;
+  padding: 0 16px;
   list-style: none;
   margin: 0;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .skill-info .skill-item {
@@ -1438,11 +1496,17 @@ main#results,
   animation: z_ani_border_color var(--ani-color-duration) var(--ani-color-bezier) infinite alternate;
 }
 
+.enemy-search-wrap {
+  position: relative;
+  flex: 0 0 auto;
+}
+
 .enemy-drop {
   position: absolute;
   top: calc(100% + 6px);
-  left: 60px;
+  left: 0;
   width: 420px;
+  max-width: calc(100vw - 56px);
   max-height: 320px;
   overflow-y: auto;
   z-index: 40;
@@ -1632,15 +1696,37 @@ main#results,
   #player::before { width: 100%; height: 5px; }
   .player-info { text-align: center; }
 
-  .role-main { grid-template-columns: 1fr; }
-  .role-portrait { max-width: none; margin: 16px 16px 0; }
-  .property-info { max-height: none; }
-  .equipment-info .main-content {
-    height: 340px;
-    width: 365px;
-    margin: 10px auto 10px;
-    transform: scale(.9);
-    transform-origin: top center;
+  .role-main { grid-template-columns: 1fr; padding: 0 16px 16px; }
+  .role-hero { padding: 16px; }
+  .role-infos { height: auto; }
+  .role-portrait {
+    position: relative;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 589 / 340;
+    margin: 0 0 12px;
   }
-  .skill-info > ul { justify-content: center; }
+  .role-base { position: relative; top: auto; left: auto; }
+  .property-info {
+    position: relative;
+    top: auto;
+    right: auto;
+    width: 100%;
+    height: auto;
+    max-height: none;
+    margin-top: 14px;
+  }
+  .equipment-info .main-content {
+    position: relative;
+    width: 180px;
+    height: 168px;
+    top: auto;
+    right: auto;
+    transform: scale(.82);
+    transform-origin: top center;
+    margin: 4px auto 8px;
+  }
+  .equipment-info { min-height: 0; }
+  .suit-effects { width: 100%; }
+  .skill-info > ul { justify-content: center; flex-wrap: wrap; height: auto; padding: 10px 16px; gap: 8px; }
 }

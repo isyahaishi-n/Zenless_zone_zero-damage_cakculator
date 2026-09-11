@@ -83,6 +83,7 @@ const G = {
   avatars: null, weapons: null, equipments: null, locale: null,
   mindscapes: null, mindscapeProps: null,
   weaponLevels: null, weaponStars: null, equipmentLevels: null,
+  driveDiscSets: null,
 };
 let showcase = null; // current player showcase data
 let SHOWCASE_LIST = []; // current showcase avatar list
@@ -131,11 +132,13 @@ function renderCalcTarget() {
   const wrap = el("div", "enemy-picker");
   wrap.appendChild(el("span", "enemy-label", "Enemy"));
 
+  const searchWrap = el("div", "enemy-search-wrap");
   const search = el("input", "enemy-search");
   search.type = "search";
   search.placeholder = "Search monster…";
   search.value = CALC.enemy.name;
-  wrap.appendChild(search);
+  searchWrap.appendChild(search);
+  wrap.appendChild(searchWrap);
 
   const lvl = el("input", "enemy-level");
   lvl.type = "number";
@@ -151,9 +154,9 @@ function renderCalcTarget() {
 
   box.appendChild(wrap);
 
-  // dropdown results container
+  // dropdown results container (anchored to the search field)
   const drop = el("div", "enemy-drop hidden");
-  box.appendChild(drop);
+  searchWrap.appendChild(drop);
 
   function showDrop(filter) {
     const f = (filter || "").toLowerCase();
@@ -585,7 +588,9 @@ function renderRoleSwiper(list) {
     const item = el("div", "role-swiper-item");
     if (excel) {
       const im = el("img");
-      im.src = excel.Image;
+      // CircleIcon is the consistent square head-shot avatar; fall back to the
+      // full-body painting if it is missing (keeps the card from going blank).
+      im.src = excel.CircleIcon || excel.Image;
       im.alt = localize(excel.Name, String(av.Id));
       im.loading = "lazy";
       item.appendChild(im);
@@ -673,13 +678,26 @@ function renderAgentDetail(apiAvatar) {
   sc.classList.remove("hidden");
 }
 
-function suitEffectText(suit, count) {
-  if (!suit || !suit.SetBonusProps) return "";
-  const parts = [];
-  for (const [pid, v] of Object.entries(suit.SetBonusProps)) {
-    parts.push(formatProp(Number(pid), v));
+/* the game's tooltip markup uses <color=#RRGGBB>…</color>; render it as styled spans */
+function richText(raw) {
+  if (!raw) return "";
+  const safe = String(raw)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+  return safe.replace(
+    /&lt;color=(#[0-9A-Fa-f]{3,8})&gt;([\s\S]*?)&lt;\/color&gt;/g,
+    (_, c, t) => `<span style="color:${c}">${t}</span>`
+  );
+}
+
+let _discSetByName = null;
+function driveDiscSetByName(name) {
+  if (!_discSetByName) {
+    _discSetByName = {};
+    for (const s of G.driveDiscSets || []) _discSetByName[s.name] = s;
   }
-  return parts.join(" · ");
+  return _discSetByName[name] || null;
 }
 
 function renderEquipment(apiAvatar) {
@@ -767,12 +785,28 @@ function renderEquipment(apiAvatar) {
     if (count < 2) continue;
     const suit = G.equipments.Suits[sid];
     if (!suit) continue;
+    const nm = localize(suit.Name, sid);
+    const mapped = driveDiscSetByName(nm);
     const li = el("li");
     const inner = el("div");
     const texts = el("div", "suit-texts");
-    const nm = localize(suit.Name, sid);
-    texts.appendChild(el("p", "", esc(`${nm} [${count}/4]`)));
-    texts.appendChild(el("p", "", esc(suitEffectText(suit, count))));
+
+    const head = el("p", "suit-name");
+    head.innerHTML = `${esc(nm)} <span class="suit-count">${count}/4</span>`;
+    texts.appendChild(head);
+
+    if (mapped && mapped.bonus_2pc_raw) {
+      const p = el("p", "suit-desc");
+      p.innerHTML = `<span class="pc-tag">2-Pc</span>${richText(mapped.bonus_2pc_raw)}`;
+      texts.appendChild(p);
+    }
+    if (count >= 4 && mapped && mapped.bonus_4pc_raw) {
+      const p = el("p", "suit-desc");
+      p.innerHTML = `<span class="pc-tag">4-Pc</span>${richText(mapped.bonus_4pc_raw)}`;
+      texts.appendChild(p);
+    }
+    if (!mapped) texts.appendChild(el("p", "suit-desc", "Set bonus active"));
+
     const ic = el("img");
     ic.src = "/static/hoyolab/weapon-suit-icon.f75f0d28.png";
     ic.alt = "";
@@ -916,6 +950,7 @@ async function loadGameData() {
   G.weaponLevels = data.weaponLevels;
   G.weaponStars = data.weaponStars;
   G.equipmentLevels = data.equipmentLevels;
+  G.driveDiscSets = (data.driveDiscSets && data.driveDiscSets.sets) || [];
 }
 
 async function loadShowcase(url) {
