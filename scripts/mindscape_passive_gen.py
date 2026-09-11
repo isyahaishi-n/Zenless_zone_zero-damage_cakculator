@@ -750,13 +750,13 @@ def audit():
     doc = json.load(open(OUT_FILE, encoding="utf-8"))
     ok = True
 
-    # 1. structure: 58 avatars x 6 levels
+    # 1. structure: avatars x 6 levels (58 di 3.1.0, 60 sejak 3.2.0: Claret/Roxy)
     avatars = doc["avatars"]
-    assert len(avatars) == 58, f"expected 58 avatars, got {len(avatars)}"
+    assert len(avatars) >= 58, f"expected >=58 avatars, got {len(avatars)}"
     for a in avatars:
         assert set(a["levels"]) == {"1", "2", "3", "4", "5", "6"}, \
             f"avatar {a['id']} levels incomplete"
-    print("  [OK] 58 avatars x 6 levels complete")
+    print(f"  [OK] {len(avatars)} avatars x 6 levels complete")
 
     # 2. M3/M5 mechanically-verified skill bumps
     bad = [a["id"] for a in avatars

@@ -39,6 +39,12 @@ PROP_ID_TO_NAME: dict[int, str] = {
     32001: "RpRecover_Base", 32002: "RpRecover_Ratio", 32003: "RpRecover_Delta",
     32201: "SkipDefDamageRatio_Base", 32203: "SkipDefDamageRatio_Delta",
     32301: "AddedDamageRatio_Wind_Base", 32303: "AddedDamageRatio_Wind_Delta",
+    # 3.2.0 baru (sistem Sharpness/Laceration; EN: "Automatic Sharpness
+    # Accumulation" & "Laceration DMG" — belum dipakai formula damage, hanya
+    # biar stat panel gak KeyError). Nama internal dari Enka property.json:
+    # 213=SharpCriticalDamage, 324=EpRecover.
+    21301: "SharpCriticalDamage_Base",
+    32401: "EpRecover_Base",
 }
 
 ALL_PROPS = list({name for name in PROP_ID_TO_NAME.values()})
@@ -147,6 +153,10 @@ PROP_DISPLAY: dict[int, tuple[str, bool]] = {
     32001: ("Decibel Regen", False), 32002: ("Decibel Regen", True), 32003: ("Decibel Regen", False),
     32201: ("Sheer DMG", True), 32203: ("Sheer DMG", True),
     32301: ("Wind DMG", True), 32303: ("Wind DMG", True),
+    # 3.2.0 baru (Sharpness/Laceration): 21301 = Laceration DMG (%),
+    # 32401 = Automatic Sharpness Accumulation (flat).
+    21301: ("Laceration DMG", True),
+    32401: ("Automatic Sharpness Accumulation", False),
 }
 
 # Disc slot -> the piece's in-game position label.

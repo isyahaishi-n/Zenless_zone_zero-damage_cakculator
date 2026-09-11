@@ -4,7 +4,7 @@
   "generated_by": "wengine_passive_gen.py",
   "generation_policy": "ALL effect values are extracted mechanically from the raw Weapon_TalentDes_* text of the same weapon id (phases 1-5), aligned by number-normalized sentence skeletons. No values are hardcoded or copied between weapons. Every effect carries evidence_p1 (exact phase-1 sentence) + evidence_key_p1 (TextMap key); raw_texts holds all five phase texts for re-derivation. Numeric clauses that no pattern matched are kept as effect_type='unparsed' with needs_review=true.",
   "local_dataset": {
-    "weapon_count": 95,
+    "weapon_count": 100,
     "source_files": [
       "/workspaces/booger_aidszzz/data/WeaponTalentTemplateTb.json",
       "/workspaces/booger_aidszzz/data/TextMap_ENTemplateTb.json",
@@ -24,7 +24,7 @@
         5
       ]
     },
-    "effect_mapped_count": 95,
+    "effect_mapped_count": 100,
     "needs_effect_review_count": 0,
     "unparsed_effect_count": 0
   },
@@ -1081,6 +1081,79 @@
           "3": "Upon becoming the active character in combat, the equipper's ATK increases by 9.3% for 10s. This effect can trigger once every 20s.",
           "4": "Upon becoming the active character in combat, the equipper's ATK increases by 10.4% for 10s. This effect can trigger once every 20s.",
           "5": "Upon becoming the active character in combat, the equipper's ATK increases by 11.5% for 10s. This effect can trigger once every 20s."
+        }
+      }
+    },
+    {
+      "id": 12016,
+      "name": "[Lunar] Semiluna",
+      "rarity": 2,
+      "profession": "Armorer",
+      "passive": {
+        "title": "Crescent Moon",
+        "mapped": true,
+        "phases_aligned": true,
+        "needs_review": false,
+        "effects": [
+          {
+            "key": "damage_bonus",
+            "effect_type": "damage_bonus",
+            "condition": {
+              "type": "toggle",
+              "label": "When using an EX Special Attack"
+            },
+            "values_p1_to_p5": [
+              18.0,
+              21.0,
+              24.0,
+              27.0,
+              30.0
+            ],
+            "scales_with_phase": true,
+            "evidence_p1": "When using an EX Special Attack, Basic Attack DMG increases by 18% for 10s.",
+            "evidence_key_p1": "Weapon_TalentDes_81201601",
+            "unit": "percent",
+            "skill_types": [
+              "Basic Attack",
+              "EX Special Attack",
+              "Special Attack"
+            ],
+            "duration_seconds": 10.0
+          }
+        ],
+        "phase_keys": [
+          {
+            "phase": 1,
+            "title_key": "Weapon_TalentTitle_12016",
+            "description_key": "Weapon_TalentDes_81201601"
+          },
+          {
+            "phase": 2,
+            "title_key": "Weapon_TalentTitle_12016",
+            "description_key": "Weapon_TalentDes_81201602"
+          },
+          {
+            "phase": 3,
+            "title_key": "Weapon_TalentTitle_12016",
+            "description_key": "Weapon_TalentDes_81201603"
+          },
+          {
+            "phase": 4,
+            "title_key": "Weapon_TalentTitle_12016",
+            "description_key": "Weapon_TalentDes_81201604"
+          },
+          {
+            "phase": 5,
+            "title_key": "Weapon_TalentTitle_12016",
+            "description_key": "Weapon_TalentDes_81201605"
+          }
+        ],
+        "raw_texts": {
+          "1": "When using an EX Special Attack, Basic Attack DMG increases by 18% for 10s. Repeated triggers reset the duration.",
+          "2": "When using an EX Special Attack, Basic Attack DMG increases by 21% for 10s. Repeated triggers reset the duration.",
+          "3": "When using an EX Special Attack, Basic Attack DMG increases by 24% for 10s. Repeated triggers reset the duration.",
+          "4": "When using an EX Special Attack, Basic Attack DMG increases by 27% for 10s. Repeated triggers reset the duration.",
+          "5": "When using an EX Special Attack, Basic Attack DMG increases by 30% for 10s. Repeated triggers reset the duration."
         }
       }
     },
@@ -2443,6 +2516,99 @@
       }
     },
     {
+      "id": 13017,
+      "name": "Catty Luck",
+      "rarity": 3,
+      "profession": "Armorer",
+      "passive": {
+        "title": "Lucky Pawpad",
+        "mapped": true,
+        "phases_aligned": true,
+        "needs_review": false,
+        "effects": [
+          {
+            "key": "def",
+            "effect_type": "stat",
+            "condition": {
+              "type": "always",
+              "label": "Always"
+            },
+            "values_p1_to_p5": [
+              8.0,
+              9.0,
+              10.0,
+              11.0,
+              12.0
+            ],
+            "scales_with_phase": true,
+            "evidence_p1": "DEF increases by 8%.",
+            "evidence_key_p1": "Weapon_TalentDes_81301701",
+            "stat": "DEF",
+            "unit": "percent"
+          },
+          {
+            "key": "def_2",
+            "effect_type": "stat",
+            "condition": {
+              "type": "toggle",
+              "label": "When using EX Special Attack"
+            },
+            "values_p1_to_p5": [
+              8.0,
+              9.0,
+              10.0,
+              11.0,
+              12.0
+            ],
+            "scales_with_phase": true,
+            "evidence_p1": "When using EX Special Attack, DEF increases by an additional 8% for 40s.",
+            "evidence_key_p1": "Weapon_TalentDes_81301701",
+            "stat": "DEF",
+            "unit": "percent",
+            "skill_types": [
+              "EX Special Attack",
+              "Special Attack"
+            ],
+            "duration_seconds": 40.0
+          }
+        ],
+        "phase_keys": [
+          {
+            "phase": 1,
+            "title_key": "Weapon_TalentTitle_13017",
+            "description_key": "Weapon_TalentDes_81301701"
+          },
+          {
+            "phase": 2,
+            "title_key": "Weapon_TalentTitle_13017",
+            "description_key": "Weapon_TalentDes_81301702"
+          },
+          {
+            "phase": 3,
+            "title_key": "Weapon_TalentTitle_13017",
+            "description_key": "Weapon_TalentDes_81301703"
+          },
+          {
+            "phase": 4,
+            "title_key": "Weapon_TalentTitle_13017",
+            "description_key": "Weapon_TalentDes_81301704"
+          },
+          {
+            "phase": 5,
+            "title_key": "Weapon_TalentTitle_13017",
+            "description_key": "Weapon_TalentDes_81301705"
+          }
+        ],
+        "raw_texts": {
+          "1": "DEF increases by 8%. When using EX Special Attack, DEF increases by an additional 8% for 40s. Repeated triggers reset the duration.",
+          "2": "DEF increases by 9%. When using EX Special Attack, DEF increases by an additional 9% for 40s. Repeated triggers reset the duration.",
+          "3": "DEF increases by 10%. When using EX Special Attack, DEF increases by an additional 10% for 40s. Repeated triggers reset the duration.",
+          "4": "DEF increases by 11%. When using EX Special Attack, DEF increases by an additional 11% for 40s. Repeated triggers reset the duration.",
+          "5": "DEF increases by 12%. When using EX Special Attack, DEF increases by an additional 12% for 40s. Repeated triggers reset the duration."
+        }
+      }
+    },
+    {
       "id": 13018,
       "name": "Boisterous Echoes",
       "rarity": 3,
@@ -2707,6 +2873,74 @@
           "3": "When activating an Assist Follow-Up, the equipper's Daze inflicted on the target increases by 9.2%, and DMG dealt increases by 9.2% for 30s. Repeated triggers reset the duration.",
           "4": "When activating an Assist Follow-Up, the equipper's Daze inflicted on the target increases by 10.2%, and DMG dealt increases by 10.2% for 30s. Repeated triggers reset the duration.",
           "5": "When activating an Assist Follow-Up, the equipper's Daze inflicted on the target increases by 11.5%, and DMG dealt increases by 11.5% for 30s. Repeated triggers reset the duration."
+        }
+      }
+    },
+    {
+      "id": 13021,
+      "name": "Bloodmarrow Coffer",
+      "rarity": 3,
+      "profession": "Armorer",
+      "passive": {
+        "title": "Moment of Unsealing",
+        "mapped": true,
+        "phases_aligned": true,
+        "needs_review": false,
+        "effects": [
+          {
+            "key": "crit_rate",
+            "effect_type": "stat",
+            "condition": {
+              "type": "toggle",
+              "label": "When the equipper's CRIT Rate exceeds 100%"
+            },
+            "values_p1_to_p5": [
+              0.48,
+              0.56,
+              0.64,
+              0.72,
+              0.8
+            ],
+            "scales_with_phase": true,
+            "evidence_p1": "When the equipper's CRIT Rate exceeds 100%, each 1% of CRIT Rate above 100% increases DMG dealt by 0.48%, up to a maximum increase of 24%.",
+            "evidence_key_p1": "Weapon_TalentDes_81302101",
+            "stat": "CRIT Rate",
+            "unit": "percent"
+          }
+        ],
+        "phase_keys": [
+          {
+            "phase": 1,
+            "title_key": "Weapon_TalentTitle_13021",
+            "description_key": "Weapon_TalentDes_81302101"
+          },
+          {
+            "phase": 2,
+            "title_key": "Weapon_TalentTitle_13021",
+            "description_key": "Weapon_TalentDes_81302102"
+          },
+          {
+            "phase": 3,
+            "title_key": "Weapon_TalentTitle_13021",
+            "description_key": "Weapon_TalentDes_81302103"
+          },
+          {
+            "phase": 4,
+            "title_key": "Weapon_TalentTitle_13021",
+            "description_key": "Weapon_TalentDes_81302104"
+          },
+          {
+            "phase": 5,
+            "title_key": "Weapon_TalentTitle_13021",
+            "description_key": "Weapon_TalentDes_81302105"
+          }
+        ],
+        "raw_texts": {
+          "1": "When the equipper's CRIT Rate exceeds 100%, each 1% of CRIT Rate above 100% increases DMG dealt by 0.48%, up to a maximum increase of 24%.",
+          "2": "When the equipper's CRIT Rate exceeds 100%, each 1% of CRIT Rate above 100% increases DMG dealt by 0.56%, up to a maximum increase of 28%.",
+          "3": "When the equipper's CRIT Rate exceeds 100%, each 1% of CRIT Rate above 100% increases DMG dealt by 0.64%, up to a maximum increase of 32%.",
+          "4": "When the equipper's CRIT Rate exceeds 100%, each 1% of CRIT Rate above 100% increases DMG dealt by 0.72%, up to a maximum increase of 36%.",
+          "5": "When the equipper's CRIT Rate exceeds 100%, each 1% of CRIT Rate above 100% increases DMG dealt by 0.8%, up to a maximum increase of 40%."
         }
       }
     },
@@ -8776,6 +9010,271 @@
           "3": "When the equipper's Basic Attack or EX Special Attack's heavy attack hits an enemy, they gain 1 stack of Battle Edge, increasing CRIT DMG by 41.6% for 25s. Battle Edge can stack up to 2 times, and each skill type can provide up to 1 stack. Repeated triggers refresh the duration of all Battle Edge. At 2 stacks of Battle Edge, the equipper gains Bonechill: Their DMG ignores 26% of the target's Ice RES.",
           "4": "When the equipper's Basic Attack or EX Special Attack's heavy attack hits an enemy, they gain 1 stack of Battle Edge, increasing CRIT DMG by 46.4% for 25s. Battle Edge can stack up to 2 times, and each skill type can provide up to 1 stack. Repeated triggers refresh the duration of all Battle Edge. At 2 stacks of Battle Edge, the equipper gains Bonechill: Their DMG ignores 29% of the target's Ice RES.",
           "5": "When the equipper's Basic Attack or EX Special Attack's heavy attack hits an enemy, they gain 1 stack of Battle Edge, increasing CRIT DMG by 51.2% for 25s. Battle Edge can stack up to 2 times, and each skill type can provide up to 1 stack. Repeated triggers refresh the duration of all Battle Edge. At 2 stacks of Battle Edge, the equipper gains Bonechill: Their DMG ignores 32% of the target's Ice RES."
+        }
+      }
+    },
+    {
+      "id": 14161,
+      "name": "Crimson Thirst",
+      "rarity": 4,
+      "profession": "Armorer",
+      "passive": {
+        "title": "Bloodthirst",
+        "mapped": true,
+        "phases_aligned": true,
+        "needs_review": false,
+        "effects": [
+          {
+            "key": "crit_rate",
+            "effect_type": "stat",
+            "condition": {
+              "type": "always",
+              "label": "Always"
+            },
+            "values_p1_to_p5": [
+              25.0,
+              27.5,
+              30.0,
+              32.5,
+              35.0
+            ],
+            "scales_with_phase": true,
+            "evidence_p1": "The equipper's CRIT Rate increases by 25%, and Electric DMG increases by 15%.",
+            "evidence_key_p1": "Weapon_TalentDes_81416111",
+            "stat": "CRIT Rate",
+            "unit": "percent",
+            "elements": [
+              "Electric"
+            ]
+          },
+          {
+            "key": "damage_bonus",
+            "effect_type": "damage_bonus",
+            "condition": {
+              "type": "always",
+              "label": "Always"
+            },
+            "values_p1_to_p5": [
+              15.0,
+              17.5,
+              20.0,
+              22.5,
+              25.0
+            ],
+            "scales_with_phase": true,
+            "evidence_p1": "The equipper's CRIT Rate increases by 25%, and Electric DMG increases by 15%.",
+            "evidence_key_p1": "Weapon_TalentDes_81416111",
+            "unit": "percent",
+            "elements": [
+              "Electric"
+            ]
+          },
+          {
+            "key": "damage_bonus_2",
+            "effect_type": "damage_bonus",
+            "condition": {
+              "type": "toggle",
+              "label": "When the equipper uses an EX Special Attack or triggers Maim"
+            },
+            "values_p1_to_p5": [
+              10.0,
+              11.5,
+              13.0,
+              14.5,
+              16.0
+            ],
+            "scales_with_phase": true,
+            "evidence_p1": "When the equipper uses an EX Special Attack or triggers Maim, Electric Sharp DMG dealt increases by 10% for 40s.",
+            "evidence_key_p1": "Weapon_TalentDes_81416111",
+            "unit": "percent",
+            "elements": [
+              "Electric"
+            ],
+            "skill_types": [
+              "EX Special Attack",
+              "Special Attack"
+            ],
+            "duration_seconds": 40.0
+          }
+        ],
+        "phase_keys": [
+          {
+            "phase": 1,
+            "title_key": "Weapon_TalentTitle_14161",
+            "description_key": "Weapon_TalentDes_81416111"
+          },
+          {
+            "phase": 2,
+            "title_key": "Weapon_TalentTitle_14161",
+            "description_key": "Weapon_TalentDes_81416112"
+          },
+          {
+            "phase": 3,
+            "title_key": "Weapon_TalentTitle_14161",
+            "description_key": "Weapon_TalentDes_81416113"
+          },
+          {
+            "phase": 4,
+            "title_key": "Weapon_TalentTitle_14161",
+            "description_key": "Weapon_TalentDes_81416114"
+          },
+          {
+            "phase": 5,
+            "title_key": "Weapon_TalentTitle_14161",
+            "description_key": "Weapon_TalentDes_81416115"
+          }
+        ],
+        "raw_texts": {
+          "1": "The equipper's CRIT Rate increases by 25%, and Electric DMG increases by 15%. When the equipper uses an EX Special Attack or triggers Maim, Electric Sharp DMG dealt increases by 10% for 40s. Repeated triggers reset the duration.",
+          "2": "The equipper's CRIT Rate increases by 27.5%, and Electric DMG increases by 17.5%. When the equipper uses an EX Special Attack or triggers Maim, Electric Sharp DMG dealt increases by 11.5% for 40s. Repeated triggers reset the duration.",
+          "3": "The equipper's CRIT Rate increases by 30%, and Electric DMG increases by 20%. When the equipper uses an EX Special Attack or triggers Maim, Electric Sharp DMG dealt increases by 13% for 40s. Repeated triggers reset the duration.",
+          "4": "The equipper's CRIT Rate increases by 32.5%, and Electric DMG increases by 22.5%. When the equipper uses an EX Special Attack or triggers Maim, Electric Sharp DMG dealt increases by 14.5% for 40s. Repeated triggers reset the duration.",
+          "5": "The equipper's CRIT Rate increases by 35%, and Electric DMG increases by 25%. When the equipper uses an EX Special Attack or triggers Maim, Electric Sharp DMG dealt increases by 16% for 40s. Repeated triggers reset the duration."
+        }
+      }
+    },
+    {
+      "id": 14162,
+      "name": "Crimson Moon Casket",
+      "rarity": 4,
+      "profession": "Stun",
+      "passive": {
+        "title": "Sleepless Eternal Night",
+        "mapped": true,
+        "phases_aligned": true,
+        "needs_review": false,
+        "effects": [
+          {
+            "key": "crit_rate",
+            "effect_type": "stat",
+            "condition": {
+              "type": "always",
+              "label": "Always"
+            },
+            "values_p1_to_p5": [
+              24.0,
+              26.0,
+              28.0,
+              30.0,
+              32.0
+            ],
+            "scales_with_phase": true,
+            "evidence_p1": "The equipper's CRIT Rate increases by 24%.",
+            "evidence_key_p1": "Weapon_TalentDes_81416211",
+            "stat": "CRIT Rate",
+            "unit": "percent"
+          },
+          {
+            "key": "res_ignore",
+            "effect_type": "res_ignore",
+            "condition": {
+              "type": "always",
+              "label": "Always"
+            },
+            "values_p1_to_p5": [
+              15.0,
+              17.3,
+              19.5,
+              21.8,
+              24.0
+            ],
+            "scales_with_phase": true,
+            "evidence_p1": "DMG dealt ignores 15% of the target's Wind RES.",
+            "evidence_key_p1": "Weapon_TalentDes_81416211",
+            "element": "Wind",
+            "unit": "percent",
+            "elements": [
+              "Wind"
+            ]
+          },
+          {
+            "key": "daze_bonus",
+            "effect_type": "daze_bonus",
+            "condition": {
+              "type": "toggle",
+              "label": "When the equipper uses an EX Special Attack to deal Wind DMG"
+            },
+            "values_p1_to_p5": [
+              16.0,
+              18.4,
+              20.8,
+              23.2,
+              25.6
+            ],
+            "scales_with_phase": true,
+            "evidence_p1": "When the equipper uses an EX Special Attack to deal Wind DMG, Daze dealt increases by 16%, and DMG dealt by all other squad members increases by 20%, for 50s.",
+            "evidence_key_p1": "Weapon_TalentDes_81416211",
+            "unit": "percent",
+            "elements": [
+              "Wind"
+            ],
+            "skill_types": [
+              "EX Special Attack",
+              "Special Attack"
+            ],
+            "duration_seconds": 50.0
+          },
+          {
+            "key": "damage_bonus",
+            "effect_type": "damage_bonus",
+            "condition": {
+              "type": "toggle",
+              "label": "When the equipper uses an EX Special Attack to deal Wind DMG"
+            },
+            "values_p1_to_p5": [
+              20.0,
+              23.0,
+              26.0,
+              29.0,
+              32.0
+            ],
+            "scales_with_phase": true,
+            "evidence_p1": "When the equipper uses an EX Special Attack to deal Wind DMG, Daze dealt increases by 16%, and DMG dealt by all other squad members increases by 20%, for 50s.",
+            "evidence_key_p1": "Weapon_TalentDes_81416211",
+            "unit": "percent",
+            "elements": [
+              "Wind"
+            ],
+            "skill_types": [
+              "EX Special Attack",
+              "Special Attack"
+            ],
+            "duration_seconds": 50.0
+          }
+        ],
+        "phase_keys": [
+          {
+            "phase": 1,
+            "title_key": "Weapon_TalentTitle_14162",
+            "description_key": "Weapon_TalentDes_81416211"
+          },
+          {
+            "phase": 2,
+            "title_key": "Weapon_TalentTitle_14162",
+            "description_key": "Weapon_TalentDes_81416212"
+          },
+          {
+            "phase": 3,
+            "title_key": "Weapon_TalentTitle_14162",
+            "description_key": "Weapon_TalentDes_81416213"
+          },
+          {
+            "phase": 4,
+            "title_key": "Weapon_TalentTitle_14162",
+            "description_key": "Weapon_TalentDes_81416214"
+          },
+          {
+            "phase": 5,
+            "title_key": "Weapon_TalentTitle_14162",
+            "description_key": "Weapon_TalentDes_81416215"
+          }
+        ],
+        "raw_texts": {
+          "1": "The equipper's CRIT Rate increases by 24%. DMG dealt ignores 15% of the target's Wind RES. When the equipper uses an EX Special Attack to deal Wind DMG, Daze dealt increases by 16%, and DMG dealt by all other squad members increases by 20%, for 50s. Repeated triggers reset the duration. Only one instance of the DMG increase effect can exist in the same squad.",
+          "2": "The equipper's CRIT Rate increases by 26%. DMG dealt ignores 17.3% of the target's Wind RES. When the equipper uses an EX Special Attack to deal Wind DMG, Daze dealt increases by 18.4%, and DMG dealt by all other squad members increases by 23%, for 50s. Repeated triggers reset the duration. Only one instance of the DMG increase effect can exist in the same squad.",
+          "3": "The equipper's CRIT Rate increases by 28%. DMG dealt ignores 19.5% of the target's Wind RES. When the equipper uses an EX Special Attack to deal Wind DMG, Daze dealt increases by 20.8%, and DMG dealt by all other squad members increases by 26%, for 50s. Repeated triggers reset the duration. Only one instance of the DMG increase effect can exist in the same squad.",
+          "4": "The equipper's CRIT Rate increases by 30%. DMG dealt ignores 21.8% of the target's Wind RES. When the equipper uses an EX Special Attack to deal Wind DMG, Daze dealt increases by 23.2%, and DMG dealt by all other squad members increases by 29%, for 50s. Repeated triggers reset the duration. Only one instance of the DMG increase effect can exist in the same squad.",
+          "5": "The equipper's CRIT Rate increases by 32%. DMG dealt ignores 24% of the target's Wind RES. When the equipper uses an EX Special Attack to deal Wind DMG, Daze dealt increases by 25.6%, and DMG dealt by all other squad members increases by 32%, for 50s. Repeated triggers reset the duration. Only one instance of the DMG increase effect can exist in the same squad."
         }
       }
     }

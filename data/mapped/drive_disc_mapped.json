@@ -1,624 +1,621 @@
 {
-  "schema_version": 1,
-  "purpose": "ZZZ Drive Disc 4pc mapping with manual state/toggle/stack conditions; combat trigger resolution intentionally deferred.",
-  "count": 30,
-  "sets": [
+ "sets": [
+  {
+   "name": "Woodpecker Electro",
+   "bonus_2pc_raw": "CRIT Rate +8%",
+   "bonus_4pc_raw": "Landing a critical hit on an enemy with a <color=#FFFFFF>Basic Attack</color>, <color=#FFFFFF>Dodge Counter</color>, or <color=#FFFFFF>EX Special Attack</color> increases the equipper's ATK by 9% for 6s. The buff duration for different skills are calculated separately.",
+   "effects_4pc": [
     {
-      "name": "Astral Voice",
-      "bonus_2pc_raw": "ATK +10%",
-      "bonus_4pc_raw": "Whenever any squad member enters the field using a Quick Assist , all squad members gain 1 stack of Astral , up to a maximum of 3 stacks, and lasting 15s. Repeated triggers reset the duration. Each stack of Astral increases the DMG dealt by the character entering the field using a Quick Assist by 8%. Only one instance of this effect can exist in the same squad.",
-      "effects_4pc": [
-        {
-          "mode": "stack",
-          "key": "astral",
-          "min": 0,
-          "max": 3,
-          "trigger_label": "Quick Assist entry",
-          "effect_per_stack": {
-            "damage_percent": 8
-          },
-          "target": "quick_assist_character"
-        }
-      ]
-    },
-    {
-      "name": "Branch & Blade Song",
-      "bonus_2pc_raw": "CRIT DMG +16%",
-      "bonus_4pc_raw": "When Anomaly Mastery exceeds or equals 115 points, the equipper's CRIT DMG increases by 30%. When any squad member applies Freeze or triggers the Shatter effect on an enemy, the equipper's CRIT Rate increases by 12%, lasting 15s.",
-      "effects_4pc": [
-        {
-          "mode": "threshold",
-          "stat": "anomaly_mastery",
-          "op": ">=",
-          "value": 115,
-          "effect": {
-            "crit_dmg_percent": 30
-          }
-        },
-        {
-          "mode": "toggle",
-          "key": "freeze_or_shatter",
-          "effect": {
-            "crit_rate_percent": 12
-          },
-          "duration_s": 15
-        }
-      ]
-    },
-    {
-      "name": "Bunny in Wonderland",
-      "bonus_2pc_raw": "HP +10%",
-      "bonus_4pc_raw": "When the equipper is a Defense character: When the equipper launches an EX Special Attack or any squad member triggers a Defensive Assist or Evasive Assist , all squad members' DMG increases by 6%, stacking up to 3 times, lasting 25s. Stacks decay one at a time, and duration refreshes when gained or decayed. Passive effects of the same name do not stack.",
-      "effects_4pc": [
-        {
-          "mode": "stack",
-          "key": "bunny_wonderland",
-          "min": 0,
-          "max": 3,
-          "prerequisite_toggle": "defense_character",
-          "trigger_label": "EX Special / Defensive Assist / Evasive Assist",
-          "effect_per_stack": {
-            "team_damage_percent": 6
-          },
-          "duration_s": 25
-        }
-      ]
-    },
-    {
-      "name": "Chaos Jazz",
-      "bonus_2pc_raw": "Anomaly Proficiency +30",
-      "bonus_4pc_raw": "Fire DMG and Electric DMG increases by 15%. While off-field, EX Special Attack and Assist Attack DMG increases by 20%. When switching on-field, this buff continues for 5s, and this continuation effect can trigger once every 7.5s.",
-      "effects_4pc": [
-        {
-          "mode": "always",
-          "effect": {
-            "fire_damage_percent": 15,
-            "electric_damage_percent": 15
-          }
-        },
-        {
-          "mode": "toggle",
-          "key": "off_field",
-          "effect": {
-            "ex_special_damage_percent": 20,
-            "assist_attack_damage_percent": 20
-          }
-        },
-        {
-          "mode": "toggle",
-          "key": "switched_on_field_continuation",
-          "effect": {
-            "ex_special_damage_percent": 20,
-            "assist_attack_damage_percent": 20
-          },
-          "duration_s": 5
-        }
-      ]
-    },
-    {
-      "name": "Chaotic Metal",
-      "bonus_2pc_raw": "Increases Ether DMG by 10%.",
-      "bonus_4pc_raw": "The equipper's CRIT DMG increases by 20%. When any character in the squad triggers Corruption's additional DMG, this effect further increases by 5.5% for 8s, stacking up to 6 times. Repeated triggers reset the duration.",
-      "effects_4pc": [
-        {
-          "mode": "always",
-          "effect": {
-            "crit_dmg_percent": 20
-          }
-        },
-        {
-          "mode": "stack",
-          "key": "corruption_additional_dmg",
-          "min": 0,
-          "max": 6,
-          "effect_per_stack": {
-            "crit_dmg_percent": 5.5
-          },
-          "duration_s": 8
-        }
-      ]
-    },
-    {
-      "name": "Dawn's Bloom",
-      "bonus_2pc_raw": "Increases Basic Attack DMG by 15%.",
-      "bonus_4pc_raw": "Increases Basic Attack DMG by 20%. When equipped by an Attack character, using an EX Special Attack or Ultimate will further increase Basic Attack DMG by 20% for 25s. Repeated triggers reset the duration.",
-      "effects_4pc": [
-        {
-          "mode": "always",
-          "effect": {
-            "basic_attack_damage_percent": 20
-          }
-        },
-        {
-          "mode": "toggle",
-          "key": "attack_ex_special_or_ultimate_used",
-          "prerequisite_toggle": "attack_character",
-          "effect": {
-            "basic_attack_damage_percent": 20
-          },
-          "duration_s": 25
-        }
-      ]
-    },
-    {
-      "name": "Fanged Metal",
-      "bonus_2pc_raw": "Increases Physical DMG by 10%.",
-      "bonus_4pc_raw": "Whenever a squad member inflicts Assault on an enemy, the equipper deals 35% additional DMG to the target for 12s.",
-      "effects_4pc": [
-        {
-          "mode": "toggle",
-          "key": "assault_active",
-          "effect": {
-            "additional_damage_percent": 35
-          },
-          "duration_s": 12
-        }
-      ]
-    },
-    {
-      "name": "Feathered Fate",
-      "bonus_2pc_raw": "Anomaly Proficiency +30",
-      "bonus_4pc_raw": "When the equipper enters the battlefield or is switched in as the active character, they gain the following buff: Anomaly Proficiency increases by 50. If the equipper is a Lumiflux character, Attribute Anomaly DMG increases by 15%, lasting 15s. This buff remains active while the equipper is off-field.",
-      "effects_4pc": [
-        {
-          "mode": "toggle",
-          "key": "entered_or_switched_in",
-          "effect": {
-            "anomaly_proficiency_flat": 50
-          }
-        },
-        {
-          "mode": "toggle",
-          "key": "entered_or_switched_in",
-          "prerequisite_toggle": "lumiflux_character",
-          "effect": {
-            "attribute_anomaly_damage_percent": 15
-          },
-          "duration_s": 15
-        }
-      ]
-    },
-    {
-      "name": "Freedom Blues",
-      "bonus_2pc_raw": "Increases Anomaly Proficiency by 30.",
-      "bonus_4pc_raw": "When an EX Special Attack hits an enemy, reduce the target's Anomaly Buildup RES to the equipper's Attribute by 20% for 8s. This effect does not stack with others of the same attribute.",
-      "effects_4pc": [
-        {
-          "mode": "toggle",
-          "key": "ex_special_hit",
-          "effect": {
-            "target_anomaly_buildup_res_percent": -20
-          },
-          "duration_s": 8,
-          "unique_attribute": true
-        }
-      ]
-    },
-    {
-      "name": "Hormone Punk",
-      "bonus_2pc_raw": "Increases ATK by 10%.",
-      "bonus_4pc_raw": "Upon entering combat or switching in, its user's ATK increases by 25% for 10s. This effect can trigger once every 20s.",
-      "effects_4pc": [
-        {
-          "mode": "toggle",
-          "key": "entered_combat_or_switched_in",
-          "effect": {
-            "atk_percent": 25
-          },
-          "duration_s": 10,
-          "cooldown_s": 20
-        }
-      ]
-    },
-    {
-      "name": "Inferno Metal",
-      "bonus_2pc_raw": "Increases Fire DMG by 10%.",
-      "bonus_4pc_raw": "Upon hitting a Burning enemy, the equipper's CRIT Rate is increased by 28% for 8s.",
-      "effects_4pc": [
-        {
-          "mode": "toggle",
-          "key": "burning_enemy_hit",
-          "effect": {
-            "crit_rate_percent": 28
-          },
-          "duration_s": 8
-        }
-      ]
-    },
-    {
-      "name": "King of the Summit",
-      "bonus_2pc_raw": "Increases Daze of attacks by 6%",
-      "bonus_4pc_raw": "When the equipper is a Stun character and uses an EX Special Attack or Chain Attack , increases CRIT DMG of all squad members by 15%, and when the equipper's CRIT Rate is more than or equal to 50%, further increases CRIT DMG by 15%, lasting 15s. Repeated triggers reset the duration. Passive effects of the same name do not stack.",
-      "effects_4pc": [
-        {
-          "mode": "toggle",
-          "key": "stun_ex_special_or_chain",
-          "prerequisite_toggle": "stun_character",
-          "effect": {
-            "team_crit_dmg_percent": 15
-          },
-          "duration_s": 15
-        },
-        {
-          "mode": "toggle",
-          "key": "stun_ex_special_or_chain_crit50",
-          "prerequisite_toggle": "stun_character_and_crit_rate_ge_50",
-          "effect": {
-            "team_crit_dmg_percent": 15
-          },
-          "duration_s": 15
-        }
-      ]
-    },
-    {
-      "name": "Moonlight Lullaby",
-      "bonus_2pc_raw": "Increases Energy Regen by 20%",
-      "bonus_4pc_raw": "When the equipper is a Support character and uses an EX Special Attack or Ultimate , the DMG dealt by all squad members increases by 18% for 25s. Repeated triggers reset the duration. Passive effects of the same name do not stack.",
-      "effects_4pc": [
-        {
-          "mode": "toggle",
-          "key": "support_ex_special_or_ultimate",
-          "prerequisite_toggle": "support_character",
-          "effect": {
-            "team_damage_percent": 18
-          },
-          "duration_s": 25
-        }
-      ]
-    },
-    {
-      "name": "Notes From the Chained",
-      "bonus_2pc_raw": "Ice DMG +10%",
-      "bonus_4pc_raw": "When the equipper triggers Abloom , their Anomaly Proficiency increases by 48 for 30s; repeated triggers reset the duration. When the equipper triggers a Freeze effect, their All-Attribute Anomaly DMG and Disorder DMG increase by 16% for 30s; repeated triggers reset the duration.",
-      "effects_4pc": [
-        {
-          "mode": "toggle",
-          "key": "abloom_triggered",
-          "effect": {
-            "anomaly_proficiency_flat": 48
-          },
-          "duration_s": 30
-        },
-        {
-          "mode": "toggle",
-          "key": "freeze_triggered",
-          "effect": {
-            "all_attribute_anomaly_damage_percent": 16,
-            "disorder_damage_percent": 16
-          },
-          "duration_s": 30
-        }
-      ]
-    },
-    {
-      "name": "Phaethon's Melody",
-      "bonus_2pc_raw": "Anomaly Mastery +8%.",
-      "bonus_4pc_raw": "When any squad member uses an EX Special Attack , the equipper's Anomaly Proficiency increases by 45 for 8s. If the character using the EX Special Attack is not the equipper, the equipper's Ether DMG is increased by 25%.",
-      "effects_4pc": [
-        {
-          "mode": "toggle",
-          "key": "any_squad_member_ex_special",
-          "effect": {
-            "anomaly_proficiency_flat": 45
-          },
-          "duration_s": 8
-        },
-        {
-          "mode": "toggle",
-          "key": "ex_special_user_not_equipper",
-          "effect": {
-            "ether_damage_percent": 25
-          }
-        }
-      ]
-    },
-    {
-      "name": "Polar Metal",
-      "bonus_2pc_raw": "Increases Ice DMG by 10%.",
-      "bonus_4pc_raw": "Increase the DMG of Basic Attack and Dash Attack by 20%. When any squad member inflicts Freeze or Shatter , this effect increases by an additional 20% for 12s.",
-      "effects_4pc": [
-        {
-          "mode": "always",
-          "effect": {
-            "basic_attack_damage_percent": 20,
-            "dash_attack_damage_percent": 20
-          }
-        },
-        {
-          "mode": "toggle",
-          "key": "freeze_or_shatter",
-          "effect": {
-            "basic_attack_damage_percent": 20,
-            "dash_attack_damage_percent": 20
-          },
-          "duration_s": 12
-        }
-      ]
-    },
-    {
-      "name": "Proto Punk",
-      "bonus_2pc_raw": "Increases Shield effect by 15%",
-      "bonus_4pc_raw": "When any squad member triggers a Defensive Assist or Evasive Assist , all squad members deal 15% increased DMG, lasting 10s. Passive effects of the same name do not stack.",
-      "effects_4pc": [
-        {
-          "mode": "toggle",
-          "key": "defensive_or_evasive_assist",
-          "effect": {
-            "team_damage_percent": 15
-          },
-          "duration_s": 10
-        }
-      ]
-    },
-    {
-      "name": "Puffer Electro",
-      "bonus_2pc_raw": "Increases PEN Ratio by 8%.",
-      "bonus_4pc_raw": "Ultimate DMG increases by 20%. Launching an Ultimate increases the equipper's ATK by 15% for 12s.",
-      "effects_4pc": [
-        {
-          "mode": "always",
-          "effect": {
-            "ultimate_damage_percent": 20
-          }
-        },
-        {
-          "mode": "toggle",
-          "key": "ultimate_used",
-          "effect": {
-            "atk_percent": 15
-          },
-          "duration_s": 12
-        }
-      ]
-    },
-    {
-      "name": "Shadow Harmony",
-      "bonus_2pc_raw": "The DMG of Aftershocks and Dash Attacks is increased by 15%.",
-      "bonus_4pc_raw": "Upon hitting an enemy with an Aftershock or Dash Attack , if the DMG dealt aligns with the equipper's attribute, the equipper gains 1 stack of a buff effect, at most once per use of a skill. For each stack, the equipper's ATK increases by 4%, and CRIT Rate increases by 4%. The effect can stack up to 3 times and lasts for 15s. Repeated triggers reset the duration.",
-      "effects_4pc": [
-        {
-          "mode": "stack",
-          "key": "shadow_harmony",
-          "min": 0,
-          "max": 3,
-          "trigger_label": "matching-attribute Aftershock / Dash Attack hit",
-          "effect_per_stack": {
-            "atk_percent": 4,
-            "crit_rate_percent": 4
-          },
-          "duration_s": 15
-        }
-      ]
-    },
-    {
-      "name": "Shining Aria",
-      "bonus_2pc_raw": "Increases Ether DMG by 10%.",
-      "bonus_4pc_raw": "When the equipper's Basic Attack hits an enemy, their Anomaly Proficiency Increases by 36, lasting 8s. Repeated triggers reset the duration. When any enemy on the field is stunned, the equipper's DMG increases by 25% for 18s. Repeated triggers reset the duration.",
-      "effects_4pc": [
-        {
-          "mode": "toggle",
-          "key": "basic_attack_hit",
-          "effect": {
-            "anomaly_proficiency_flat": 36
-          },
-          "duration_s": 8
-        },
-        {
-          "mode": "toggle",
-          "key": "enemy_stunned",
-          "effect": {
-            "damage_percent": 25
-          },
-          "duration_s": 18
-        }
-      ]
-    },
-    {
-      "name": "Shockstar Disco",
-      "bonus_2pc_raw": "Increases Impact by 6%.",
-      "bonus_4pc_raw": "Basic Attacks , Dash Attacks , and Dodge Counters inflict 20% more Daze to the main target.",
-      "effects_4pc": [
-        {
-          "mode": "always",
-          "effect": {
-            "basic_dash_dodge_counter_daze_percent": 20
-          }
-        }
-      ]
-    },
-    {
-      "name": "Soul Rock",
-      "bonus_2pc_raw": "Increases DEF by 16%.",
-      "bonus_4pc_raw": "Upon receiving an enemy attack and losing HP, the equipper takes 40% less DMG for 2.5s. This effect can trigger once every 15s.",
-      "effects_4pc": [
-        {
-          "mode": "toggle",
-          "key": "received_attack_and_lost_hp",
-          "effect": {
-            "damage_taken_reduction_percent": 40
-          },
-          "duration_s": 2.5,
-          "cooldown_s": 15
-        }
-      ]
-    },
-    {
-      "name": "Swing Jazz",
-      "bonus_2pc_raw": "Energy Regen increases by 20%.",
-      "bonus_4pc_raw": "Launching a Chain Attack or Ultimate increases all squad members' DMG by 15% for 12s. Passive effects of the same name do not stack.",
-      "effects_4pc": [
-        {
-          "mode": "toggle",
-          "key": "chain_attack_or_ultimate_used",
-          "effect": {
-            "team_damage_percent": 15
-          },
-          "duration_s": 12
-        }
-      ]
-    },
-    {
-      "name": "The Sky Ablaze",
-      "bonus_2pc_raw": "Ether DMG +10%",
-      "bonus_4pc_raw": "When the equipper is an Ether attribute Agent, their CRIT DMG increases by 30%. When the equipper uses an EX Special Attack or Ultimate , their ATK increases by 10% for 30s. Repeated triggers reset the duration.",
-      "effects_4pc": [
-        {
-          "mode": "toggle",
-          "key": "ether_character",
-          "effect": {
-            "crit_dmg_percent": 30
-          }
-        },
-        {
-          "mode": "toggle",
-          "key": "ex_special_or_ultimate_used",
-          "effect": {
-            "atk_percent": 10
-          },
-          "duration_s": 30
-        }
-      ]
-    },
-    {
-      "name": "Thorned Rose",
-      "bonus_2pc_raw": "DEF +16%",
-      "bonus_4pc_raw": "The equipper's DMG increases by 15%. When the equipper's initial DEF is at least 1,000/1,800, CRIT Rate increases by 8/16%.",
-      "effects_4pc": [
-        {
-          "mode": "always",
-          "effect": {
-            "damage_percent": 15
-          }
-        },
-        {
-          "mode": "threshold",
-          "stat": "initial_def",
-          "op": ">=",
-          "value": 1000,
-          "effect": {
-            "crit_rate_percent": 8
-          }
-        },
-        {
-          "mode": "threshold",
-          "stat": "initial_def",
-          "op": ">=",
-          "value": 1800,
-          "effect": {
-            "crit_rate_percent": 16
-          }
-        }
-      ]
-    },
-    {
-      "name": "Thunder Metal",
-      "bonus_2pc_raw": "Increases Electric DMG by 10%.",
-      "bonus_4pc_raw": "As long as an enemy in combat is Shocked , the equipper's ATK is increased by 28%.",
-      "effects_4pc": [
-        {
-          "mode": "toggle",
-          "key": "enemy_shocked",
-          "effect": {
-            "atk_percent": 28
-          }
-        }
-      ]
-    },
-    {
-      "name": "White Water Ballad",
-      "bonus_2pc_raw": "Increases Physical DMG by 10%.",
-      "bonus_4pc_raw": "When the equipper is within any Ether Veil, their CRIT Rate increases by 10%. After leaving Ether Veil, this bonus remains for 15s. If the equipper is an Attack character, activating an Ether Veil or extending an Ether Veil grants an additional 10% CRIT Rate and 10% ATK for 30s. Repeated triggers reset the duration.",
-      "effects_4pc": [
-        {
-          "mode": "toggle",
-          "key": "within_ether_veil",
-          "effect": {
-            "crit_rate_percent": 10
-          }
-        },
-        {
-          "mode": "toggle",
-          "key": "ether_veil_activated_or_extended",
-          "prerequisite_toggle": "attack_character",
-          "effect": {
-            "crit_rate_percent": 10,
-            "atk_percent": 10
-          },
-          "duration_s": 30
-        }
-      ]
-    },
-    {
-      "name": "Woodpecker Electro",
-      "bonus_2pc_raw": "Increases CRIT Rate by 8%.",
-      "bonus_4pc_raw": "Landing a critical hit on an enemy with a Basic Attack , Dodge Counter , or EX Special Attack increases the equipper's ATK by 9% for 6s. The buff duration for different skills are calculated separately.",
-      "effects_4pc": [
-        {
-          "mode": "separate_skill_triggers",
-          "skills": [
-            "basic_attack",
-            "dodge_counter",
-            "ex_special"
-          ],
-          "effect": {
-            "atk_percent": 9
-          },
-          "duration_s": 6
-        }
-      ]
-    },
-    {
-      "name": "Wuthering Salon",
-      "bonus_2pc_raw": "Wind DMG +10%",
-      "bonus_4pc_raw": "When the equipper uses an EX Special Attack , their Anomaly Proficiency increases by 25 for 40s, stacking up to 2 times. Repeated triggers reset the duration. When the equipper triggers Windswept , their DMG increases by 18% for 40s. Repeated triggers reset the duration.",
-      "effects_4pc": [
-        {
-          "mode": "stack",
-          "key": "wuthering_salon_anomaly_proficiency",
-          "min": 0,
-          "max": 2,
-          "trigger_label": "EX Special Attack",
-          "effect_per_stack": {
-            "anomaly_proficiency_flat": 25
-          },
-          "duration_s": 40
-        },
-        {
-          "mode": "toggle",
-          "key": "windswept_triggered",
-          "effect": {
-            "damage_percent": 18
-          },
-          "duration_s": 40
-        }
-      ]
-    },
-    {
-      "name": "Yunkui Tales",
-      "bonus_2pc_raw": "HP +10%",
-      "bonus_4pc_raw": "When using EX Special Attack , Chain Attack , or Ultimate , CRIT Rate increases by 4%, stacking up to 3 times and lasting 15s. Repeated triggers reset the duration. When having 3 stacks of this effect, Sheer DMG increases by 10%.",
-      "effects_4pc": [
-        {
-          "mode": "stack",
-          "key": "yunkui_tales",
-          "min": 0,
-          "max": 3,
-          "trigger_label": "EX Special / Chain / Ultimate",
-          "effect_per_stack": {
-            "crit_rate_percent": 4
-          },
-          "duration_s": 15
-        },
-        {
-          "mode": "threshold_stack",
-          "key": "yunkui_tales",
-          "op": ">=",
-          "value": 3,
-          "effect": {
-            "sheer_damage_percent": 10
-          }
-        }
-      ]
+     "mode": "separate_skill_triggers",
+     "skills": [
+      "basic_attack",
+      "dodge_counter",
+      "ex_special"
+     ],
+     "effect": {
+      "atk_percent": 9
+     },
+     "duration_s": 6
     }
-  ]
+   ]
+  },
+  {
+   "name": "Puffer Electro",
+   "bonus_2pc_raw": "PEN Ratio +8%",
+   "bonus_4pc_raw": "<color=#FFFFFF>Ultimate</color> DMG increases by 20%. Launching an <color=#FFFFFF>Ultimate</color> increases the equipper's ATK by 15% for 12s.",
+   "effects_4pc": [
+    {
+     "mode": "always",
+     "effect": {
+      "ultimate_damage_percent": 20
+     }
+    },
+    {
+     "mode": "toggle",
+     "key": "ultimate_used",
+     "effect": {
+      "atk_percent": 15
+     },
+     "duration_s": 12
+    }
+   ]
+  },
+  {
+   "name": "Shockstar Disco",
+   "bonus_2pc_raw": "Impact +6%",
+   "bonus_4pc_raw": "<color=#FFFFFF>Basic Attacks</color>, <color=#FFFFFF>Dash Attacks</color>, and <color=#FFFFFF>Dodge Counters</color> inflict 20% more Daze to the main target.",
+   "effects_4pc": [
+    {
+     "mode": "always",
+     "effect": {
+      "basic_dash_dodge_counter_daze_percent": 20
+     }
+    }
+   ]
+  },
+  {
+   "name": "Freedom Blues",
+   "bonus_2pc_raw": "Anomaly Proficiency +30",
+   "bonus_4pc_raw": "When an <color=#FFFFFF>EX Special Attack</color> hits an enemy, reduce the target's Anomaly Buildup RES to the equipper's Attribute by 20% for 8s. This effect does not stack with others of the same attribute.",
+   "effects_4pc": [
+    {
+     "mode": "toggle",
+     "key": "ex_special_hit",
+     "effect": {
+      "target_anomaly_buildup_res_percent": -20
+     },
+     "duration_s": 8,
+     "unique_attribute": true
+    }
+   ]
+  },
+  {
+   "name": "Hormone Punk",
+   "bonus_2pc_raw": "ATK +10%",
+   "bonus_4pc_raw": "Upon becoming the active character in combat, the equipper's ATK increases by 25% for 10s. This effect can trigger once every 20s.",
+   "effects_4pc": [
+    {
+     "mode": "toggle",
+     "key": "entered_combat_or_switched_in",
+     "effect": {
+      "atk_percent": 25
+     },
+     "duration_s": 10,
+     "cooldown_s": 20
+    }
+   ]
+  },
+  {
+   "name": "Soul Rock",
+   "bonus_2pc_raw": "DEF +16%",
+   "bonus_4pc_raw": "Upon receiving an enemy attack and losing HP, the equipper takes 40% less DMG for 2.5s. This effect can trigger once every 15s.",
+   "effects_4pc": [
+    {
+     "mode": "toggle",
+     "key": "received_attack_and_lost_hp",
+     "effect": {
+      "damage_taken_reduction_percent": 40
+     },
+     "duration_s": 2.5,
+     "cooldown_s": 15
+    }
+   ]
+  },
+  {
+   "name": "Swing Jazz",
+   "bonus_2pc_raw": "Energy Regen +20%",
+   "bonus_4pc_raw": "Launching a <color=#FFFFFF>Chain Attack</color> or <color=#FFFFFF>Ultimate</color> increases all squad members' DMG by 15% for 12s. Passive effects of the same name do not stack.",
+   "effects_4pc": [
+    {
+     "mode": "toggle",
+     "key": "chain_attack_or_ultimate_used",
+     "effect": {
+      "team_damage_percent": 15
+     },
+     "duration_s": 12
+    }
+   ]
+  },
+  {
+   "name": "Chaos Jazz",
+   "bonus_2pc_raw": "Anomaly Proficiency +30",
+   "bonus_4pc_raw": "<color=#FF5521>Fire DMG</color> and <color=#2EB6FF>Electric DMG</color> increases by 15%. While off-field, <color=#FFFFFF>EX Special Attack</color> and <color=#FFFFFF>Assist Attack</color> DMG increases by 20%. When switching on-field, this buff continues for 5s, and this continuation effect can trigger once every 7.5s.",
+   "effects_4pc": [
+    {
+     "mode": "always",
+     "effect": {
+      "fire_damage_percent": 15,
+      "electric_damage_percent": 15
+     }
+    },
+    {
+     "mode": "toggle",
+     "key": "off_field",
+     "effect": {
+      "ex_special_damage_percent": 20,
+      "assist_attack_damage_percent": 20
+     }
+    },
+    {
+     "mode": "toggle",
+     "key": "switched_on_field_continuation",
+     "effect": {
+      "ex_special_damage_percent": 20,
+      "assist_attack_damage_percent": 20
+     },
+     "duration_s": 5
+    }
+   ]
+  },
+  {
+   "name": "Proto Punk",
+   "bonus_2pc_raw": "Increases Shield effect by 15%.",
+   "bonus_4pc_raw": "When any squad member triggers a <color=#FFFFFF>Defensive Assist</color> or <color=#FFFFFF>Evasive Assist</color>, all squad members deal 15% increased DMG, lasting 10s. Passive effects of the same name do not stack.",
+   "effects_4pc": [
+    {
+     "mode": "toggle",
+     "key": "defensive_or_evasive_assist",
+     "effect": {
+      "team_damage_percent": 15
+     },
+     "duration_s": 10
+    }
+   ]
+  },
+  {
+   "name": "Inferno Metal",
+   "bonus_2pc_raw": "<color=#FF5521>Fire DMG</color> +10%",
+   "bonus_4pc_raw": "Upon hitting a <color=#FF5521>Burning</color> enemy, the equipper's CRIT Rate is increased by 28% for 8s.",
+   "effects_4pc": [
+    {
+     "mode": "toggle",
+     "key": "burning_enemy_hit",
+     "effect": {
+      "crit_rate_percent": 28
+     },
+     "duration_s": 8
+    }
+   ]
+  },
+  {
+   "name": "Chaotic Metal",
+   "bonus_2pc_raw": "<color=#FE437E>Ether DMG</color> +10%",
+   "bonus_4pc_raw": "The equipper's CRIT DMG increases by 20%. When any character in the squad triggers <color=#FE437E>Corruption</color> DMG, this effect further increases by 5.5% for 8s, stacking up to 6 times. Repeated triggers reset the duration.",
+   "effects_4pc": [
+    {
+     "mode": "always",
+     "effect": {
+      "crit_dmg_percent": 20
+     }
+    },
+    {
+     "mode": "stack",
+     "key": "corruption_additional_dmg",
+     "min": 0,
+     "max": 6,
+     "effect_per_stack": {
+      "crit_dmg_percent": 5.5
+     },
+     "duration_s": 8
+    }
+   ]
+  },
+  {
+   "name": "Thunder Metal",
+   "bonus_2pc_raw": "<color=#2EB6FF>Electric DMG</color> +10%",
+   "bonus_4pc_raw": "As long as an enemy in combat is <color=#2EB6FF>Shocked</color>, the equipper's ATK is increased by 28%.",
+   "effects_4pc": [
+    {
+     "mode": "toggle",
+     "key": "enemy_shocked",
+     "effect": {
+      "atk_percent": 28
+     }
+    }
+   ]
+  },
+  {
+   "name": "Polar Metal",
+   "bonus_2pc_raw": "<color=#98EFF0>Ice DMG</color> +10%",
+   "bonus_4pc_raw": "Increase the DMG of <color=#FFFFFF>Basic Attack</color> and <color=#FFFFFF>Dash Attack</color> by 20%. When any squad member inflicts <color=#98EFF0>Freeze</color> or <color=#98EFF0>Shatter</color>, this effect increases by an additional 20% for 12s.",
+   "effects_4pc": [
+    {
+     "mode": "always",
+     "effect": {
+      "basic_attack_damage_percent": 20,
+      "dash_attack_damage_percent": 20
+     }
+    },
+    {
+     "mode": "toggle",
+     "key": "freeze_or_shatter",
+     "effect": {
+      "basic_attack_damage_percent": 20,
+      "dash_attack_damage_percent": 20
+     },
+     "duration_s": 12
+    }
+   ]
+  },
+  {
+   "name": "Fanged Metal",
+   "bonus_2pc_raw": "<color=#F0D12B>Physical DMG</color> +10%",
+   "bonus_4pc_raw": "Whenever a squad member inflicts <color=#F0D12B>Assault</color> on an enemy, the equipper deals 35% additional DMG to the target for 12s.",
+   "effects_4pc": [
+    {
+     "mode": "toggle",
+     "key": "assault_active",
+     "effect": {
+      "additional_damage_percent": 35
+     },
+     "duration_s": 12
+    }
+   ]
+  },
+  {
+   "name": "Branch & Blade Song",
+   "bonus_2pc_raw": "CRIT DMG +16%",
+   "bonus_4pc_raw": "When Anomaly Mastery exceeds or equals 115 points, the equipper's CRIT DMG increases by 30%. When any squad member applies <color=#98EFF0>Freeze</color> or triggers the <color=#98EFF0>Shatter</color> effect on an enemy, the equipper's CRIT Rate increases by 12%, lasting 15s.",
+   "effects_4pc": [
+    {
+     "mode": "threshold",
+     "stat": "anomaly_mastery",
+     "op": ">=",
+     "value": 115,
+     "effect": {
+      "crit_dmg_percent": 30
+     }
+    },
+    {
+     "mode": "toggle",
+     "key": "freeze_or_shatter",
+     "effect": {
+      "crit_rate_percent": 12
+     },
+     "duration_s": 15
+    }
+   ]
+  },
+  {
+   "name": "Astral Voice",
+   "bonus_2pc_raw": "ATK +10%",
+   "bonus_4pc_raw": "Whenever any squad member enters the field using a <color=#FFFFFF>Quick Assist</color>, all squad members gain 1 stack of <color=#FFFFFF>Astral</color>, up to a maximum of 3 stacks, and lasting 15s. Repeated triggers reset the duration. Each stack of <color=#FFFFFF>Astral</color> increases the DMG dealt by the character entering the field using a <color=#FFFFFF>Quick Assist</color> by 8%. Passive effects of the same name do not stack.",
+   "effects_4pc": [
+    {
+     "mode": "stack",
+     "key": "astral",
+     "min": 0,
+     "max": 3,
+     "trigger_label": "Quick Assist entry",
+     "effect_per_stack": {
+      "damage_percent": 8
+     },
+     "target": "quick_assist_character"
+    }
+   ]
+  },
+  {
+   "name": "Shadow Harmony",
+   "bonus_2pc_raw": "The DMG of <color=#FFFFFF>Aftershocks</color> and <color=#FFFFFF>Dash Attacks</color> is increased by 15%.",
+   "bonus_4pc_raw": "Upon hitting an enemy with an <color=#FFFFFF>Aftershock</color> or <color=#FFFFFF>Dash Attack</color>, if the DMG dealt aligns with the equipper's attribute, the equipper gains 1 stack of a buff effect, at most once per use of a skill. For each stack, the equipper's ATK increases by 4%, and CRIT Rate increases by 4%. The effect can stack up to 3 times and lasts for 15s. Repeated triggers reset the duration.",
+   "effects_4pc": [
+    {
+     "mode": "stack",
+     "key": "shadow_harmony",
+     "min": 0,
+     "max": 3,
+     "trigger_label": "matching-attribute Aftershock / Dash Attack hit",
+     "effect_per_stack": {
+      "atk_percent": 4,
+      "crit_rate_percent": 4
+     },
+     "duration_s": 15
+    }
+   ]
+  },
+  {
+   "name": "Phaethon's Melody",
+   "bonus_2pc_raw": "Anomaly Mastery +8%.",
+   "bonus_4pc_raw": "When any squad member uses an <color=#FFFFFF>EX Special Attack</color>, the equipper's Anomaly Proficiency increases by 45 for 8s. If the character using the <color=#FFFFFF>EX Special Attack</color> is not the equipper, the equipper's <color=#FE437E>Ether DMG</color> is increased by 25%.",
+   "effects_4pc": [
+    {
+     "mode": "toggle",
+     "key": "any_squad_member_ex_special",
+     "effect": {
+      "anomaly_proficiency_flat": 45
+     },
+     "duration_s": 8
+    },
+    {
+     "mode": "toggle",
+     "key": "ex_special_user_not_equipper",
+     "effect": {
+      "ether_damage_percent": 25
+     }
+    }
+   ]
+  },
+  {
+   "name": "Yunkui Tales",
+   "bonus_2pc_raw": "HP +10%",
+   "bonus_4pc_raw": "When using <color=#FFFFFF>EX Special Attack</color>, <color=#FFFFFF>Chain Attack</color>, or <color=#FFFFFF>Ultimate</color>, CRIT Rate increases by 4%, stacking up to 3 times and lasting 15s. Repeated triggers reset the duration. When having 3 stacks of this effect, Sheer DMG increases by 10%.",
+   "effects_4pc": [
+    {
+     "mode": "stack",
+     "key": "yunkui_tales",
+     "min": 0,
+     "max": 3,
+     "trigger_label": "EX Special / Chain / Ultimate",
+     "effect_per_stack": {
+      "crit_rate_percent": 4
+     },
+     "duration_s": 15
+    },
+    {
+     "mode": "threshold_stack",
+     "key": "yunkui_tales",
+     "op": ">=",
+     "value": 3,
+     "effect": {
+      "sheer_damage_percent": 10
+     }
+    }
+   ]
+  },
+  {
+   "name": "King of the Summit",
+   "bonus_2pc_raw": "Increases Daze of attacks by 6%",
+   "bonus_4pc_raw": "When the equipper is a Stun character and uses an <color=#FFFFFF>EX Special Attack</color> or <color=#FFFFFF>Chain Attack</color>, increases CRIT DMG of all squad members by 15%, and when the equipper's CRIT Rate is more than or equal to 50%, further increases CRIT DMG by 15%, lasting 15s. Repeated triggers reset the duration. Passive effects of the same name do not stack.",
+   "effects_4pc": [
+    {
+     "mode": "toggle",
+     "key": "stun_ex_special_or_chain",
+     "prerequisite_toggle": "stun_character",
+     "effect": {
+      "team_crit_dmg_percent": 15
+     },
+     "duration_s": 15
+    },
+    {
+     "mode": "toggle",
+     "key": "stun_ex_special_or_chain_crit50",
+     "prerequisite_toggle": "stun_character_and_crit_rate_ge_50",
+     "effect": {
+      "team_crit_dmg_percent": 15
+     },
+     "duration_s": 15
+    }
+   ]
+  },
+  {
+   "name": "Dawn's Bloom",
+   "bonus_2pc_raw": "Increases <color=#FFFFFF>Basic Attack</color> DMG by 15%.",
+   "bonus_4pc_raw": "Increases <color=#FFFFFF>Basic Attack</color> DMG by 20%. When equipped by an Attack character, using an <color=#FFFFFF>EX Special Attack</color> or <color=#FFFFFF>Ultimate</color> will further increase <color=#FFFFFF>Basic Attack</color> DMG by 20% for 25s. Repeated triggers reset the duration.",
+   "effects_4pc": [
+    {
+     "mode": "always",
+     "effect": {
+      "basic_attack_damage_percent": 20
+     }
+    },
+    {
+     "mode": "toggle",
+     "key": "attack_ex_special_or_ultimate_used",
+     "prerequisite_toggle": "attack_character",
+     "effect": {
+      "basic_attack_damage_percent": 20
+     },
+     "duration_s": 25
+    }
+   ]
+  },
+  {
+   "name": "Moonlight Lullaby",
+   "bonus_2pc_raw": "Energy Regen +20%",
+   "bonus_4pc_raw": "When the equipper is a Support character and uses an <color=#FFFFFF>EX Special Attack</color> or <color=#FFFFFF>Ultimate</color>, the DMG dealt by all squad members increases by 18% for 25s. Repeated triggers reset the duration. Passive effects of the same name do not stack.",
+   "effects_4pc": [
+    {
+     "mode": "toggle",
+     "key": "support_ex_special_or_ultimate",
+     "prerequisite_toggle": "support_character",
+     "effect": {
+      "team_damage_percent": 18
+     },
+     "duration_s": 25
+    }
+   ]
+  },
+  {
+   "name": "White Water Ballad",
+   "bonus_2pc_raw": "<color=#F0D12B>Physical DMG</color> +10%",
+   "bonus_4pc_raw": "When the equipper is within any <color=#FFFFFF>Ether Veil</color>, their CRIT Rate increases by 10%. After leaving the <color=#FFFFFF>Ether Veil</color>, this buff remains for 15s. If the equipper is an <color=#FFFFFF>Attack</color> character, activating an <color=#FFFFFF>Ether Veil</color> or extending an <color=#FFFFFF>Ether Veil</color>'s duration increases their CRIT Rate by 10% and ATK by 10% for 30s. Repeated triggers reset the duration.",
+   "effects_4pc": [
+    {
+     "mode": "toggle",
+     "key": "within_ether_veil",
+     "effect": {
+      "crit_rate_percent": 10
+     }
+    },
+    {
+     "mode": "toggle",
+     "key": "ether_veil_activated_or_extended",
+     "prerequisite_toggle": "attack_character",
+     "effect": {
+      "crit_rate_percent": 10,
+      "atk_percent": 10
+     },
+     "duration_s": 30
+    }
+   ]
+  },
+  {
+   "name": "Shining Aria",
+   "bonus_2pc_raw": "<color=#FE437E>Ether DMG</color> +10%",
+   "bonus_4pc_raw": "When the equipper's <color=#FFFFFF>Basic Attack</color> hits an enemy, their Anomaly Proficiency increases by 36, lasting 8s. Repeated triggers reset the duration. When any enemy on the field is Stunned, the equipper's DMG increases by 25% for 18s. Repeated triggers reset the duration.",
+   "effects_4pc": [
+    {
+     "mode": "toggle",
+     "key": "basic_attack_hit",
+     "effect": {
+      "anomaly_proficiency_flat": 36
+     },
+     "duration_s": 8
+    },
+    {
+     "mode": "toggle",
+     "key": "enemy_stunned",
+     "effect": {
+      "damage_percent": 25
+     },
+     "duration_s": 18
+    }
+   ]
+  },
+  {
+   "name": "Bunny in Wonderland",
+   "bonus_2pc_raw": "HP +10%",
+   "bonus_4pc_raw": "When the equipper is a Defense character: When the equipper launches an <color=#FFFFFF>EX Special Attack</color> or any squad member triggers a <color=#FFFFFF>Defensive Assist</color> or <color=#FFFFFF>Evasive Assist</color>, all squad members' DMG increases by 6%, stacking up to 3 times, lasting 25s. Stacks decay one at a time, and duration refreshes when gained or decayed. Passive effects of the same name do not stack.",
+   "effects_4pc": [
+    {
+     "mode": "stack",
+     "key": "bunny_wonderland",
+     "min": 0,
+     "max": 3,
+     "prerequisite_toggle": "defense_character",
+     "trigger_label": "EX Special / Defensive Assist / Evasive Assist",
+     "effect_per_stack": {
+      "team_damage_percent": 6
+     },
+     "duration_s": 25
+    }
+   ]
+  },
+  {
+   "name": "Notes From the Chained",
+   "bonus_2pc_raw": "<color=#98EFF0>Ice DMG</color> +10%.",
+   "bonus_4pc_raw": "When the equipper triggers <color=#FFFFFF>Abloom</color>, their Anomaly Proficiency increases by 48 for 30s; repeated triggers reset the duration. When the equipper triggers a <color=#FFFFFF>Freeze</color> effect, their All-Attribute Anomaly DMG and <color=#FFFFFF>Disorder</color> DMG increase by 16% for 30s; repeated triggers reset the duration.",
+   "effects_4pc": [
+    {
+     "mode": "toggle",
+     "key": "abloom_triggered",
+     "effect": {
+      "anomaly_proficiency_flat": 48
+     },
+     "duration_s": 30
+    },
+    {
+     "mode": "toggle",
+     "key": "freeze_triggered",
+     "effect": {
+      "all_attribute_anomaly_damage_percent": 16,
+      "disorder_damage_percent": 16
+     },
+     "duration_s": 30
+    }
+   ]
+  },
+  {
+   "name": "Wuthering Salon",
+   "bonus_2pc_raw": "<color=#A6C5FD>Wind DMG</color> +10%.",
+   "bonus_4pc_raw": "When the equipper uses an <color=#FFFFFF>EX Special Attack</color>, their Anomaly Proficiency increases by 25, stacking up to 2 times, and lasting 40s; repeated triggers reset the duration. When the equipper triggers <color=#A6C5FD>Windswept</color>, their DMG increases by 18% for 40s. Repeated triggers reset the duration.",
+   "effects_4pc": [
+    {
+     "mode": "stack",
+     "key": "wuthering_salon_anomaly_proficiency",
+     "min": 0,
+     "max": 2,
+     "trigger_label": "EX Special Attack",
+     "effect_per_stack": {
+      "anomaly_proficiency_flat": 25
+     },
+     "duration_s": 40
+    },
+    {
+     "mode": "toggle",
+     "key": "windswept_triggered",
+     "effect": {
+      "damage_percent": 18
+     },
+     "duration_s": 40
+    }
+   ]
+  },
+  {
+   "name": "The Sky Ablaze",
+   "bonus_2pc_raw": "<color=#FE437E>Ether DMG</color> +10%.",
+   "bonus_4pc_raw": "When the equipper is an <color=#FE437E>Ether</color> attribute Agent, their CRIT DMG increases by 30%. When the equipper uses an <color=#FFFFFF>EX Special Attack</color> or <color=#FFFFFF>Ultimate</color>, their ATK increases by 10% for 30s. Repeated triggers reset the duration.",
+   "effects_4pc": [
+    {
+     "mode": "toggle",
+     "key": "ether_character",
+     "effect": {
+      "crit_dmg_percent": 30
+     }
+    },
+    {
+     "mode": "toggle",
+     "key": "ex_special_or_ultimate_used",
+     "effect": {
+      "atk_percent": 10
+     },
+     "duration_s": 30
+    }
+   ]
+  },
+  {
+   "name": "Feathered Fate",
+   "bonus_2pc_raw": "Anomaly Proficiency +30",
+   "bonus_4pc_raw": "When the equipper enters the battlefield or is switched in as the active character, they gain the following buff: Anomaly Proficiency increases by 50. If the equipper is a <color=#FFA9DD>Lumiflux</color> character, Attribute Anomaly DMG increases by 15%, lasting 15s.\nThis buff remains active while the equipper is off-field.",
+   "effects_4pc": [
+    {
+     "mode": "toggle",
+     "key": "entered_or_switched_in",
+     "effect": {
+      "anomaly_proficiency_flat": 50
+     }
+    },
+    {
+     "mode": "toggle",
+     "key": "entered_or_switched_in",
+     "prerequisite_toggle": "lumiflux_character",
+     "effect": {
+      "attribute_anomaly_damage_percent": 15
+     },
+     "duration_s": 15
+    }
+   ]
+  },
+  {
+   "name": "Thorned Rose",
+   "bonus_2pc_raw": "DEF +16%",
+   "bonus_4pc_raw": "The equipper's DMG increases by 15%. When the equipper's initial DEF is at least 1,000/1,800, CRIT Rate increases by 8/16%.",
+   "effects_4pc": [
+    {
+     "mode": "always",
+     "effect": {
+      "damage_percent": 15
+     }
+    },
+    {
+     "mode": "threshold",
+     "stat": "initial_def",
+     "op": ">=",
+     "value": 1000,
+     "effect": {
+      "crit_rate_percent": 8
+     }
+    },
+    {
+     "mode": "threshold",
+     "stat": "initial_def",
+     "op": ">=",
+     "value": 1800,
+     "effect": {
+      "crit_rate_percent": 16
+     }
+    }
+   ]
+  }
+ ]
 }

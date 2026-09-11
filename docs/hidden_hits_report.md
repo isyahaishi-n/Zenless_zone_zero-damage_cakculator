@@ -168,3 +168,15 @@ mengulang 70 baris — mayoritas varian enhanced/combo extension tiap karakter).
       (di luar data-only; open, rendah prioritas)
 - [ ] Verifikasi kandidat Vivian/Jane/Cissia/Seed/Miyabi — butuh anchor
       gameplay tambahan
+
+## Addendum 3.2.0 (update data 2026-09-11)
+
+- Data skill di-refresh ke patch 3.2.0 (field code re-obfuscated — mapping
+  lama→baru ada di `field_map.py`; klasifikasi ulang `classify_hidden_hits()`
+  memberi hasil IDENTIK untuk semua karakter lama: 119/119 hit, kategori &
+  hit id sama, tidak ada karakter lama yang berubah hidden hits-nya).
+- +3 hidden hit baru dari karakter baru, semua `unique_hidden`:
+  - Claret (1611): `1611015` (type 1, dmg 1056.6% gr 96.1% daze 0),
+    `1611017` (type 2, dmg 134.2% gr 12.2% daze 46.8%)
+  - Roxy (1621): `1621024` (type 1, dmg 520.9% gr 47.4% daze 70.6%)
+- Total sekarang: **122 hidden hits di 42 karakter** (was 119/40).

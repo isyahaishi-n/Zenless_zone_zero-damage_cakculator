@@ -7,6 +7,21 @@ Hidden hits (119 hit / 40 karakter) terklasifikasi lengkap + 3 identitas
 CONFIRMED (`hidden_hits_report.md`). Konteks lengkap: `readme2.md` /
 `wengine.md` / `hidden_hits_report.md` / `NEXT_STEPS.md`.
 
+Update 2026-09-11 (patch 3.2.0, jalur UPDATE.md): semua data di-refresh
+(ZenlessData 3.2.0 + Enka). **Field code 3.2.0 RE-OBFUSCATED TOTAL**
+(root `MLOEFHJHCID` → `IAEFFFFLKNB`, semua field berubah). Mapping
+old→new dibangun via korrelasi otomatis (row-value signature + ID-join
+voting) dan diverifikasi ke ground truth (Tyrfing DEF/HP/stun/RES,
+Miyabi 1091027/28, curve L60=1588, kalibrasi 1086/2961 PASS 0.025%).
+**Mapping tersimpan di `field_map.py`** — file data 3.2.0 di-install
+dengan nama field 3.1.0 (renamed saat install), jadi semua kode existing
+tetap jalan. Patch berikutnya kalau re-obfuscate lagi: regenerate mapping
+dengan metode sama (detail metode di `field_map.py` docstring), JANGAN
+pakai field code dari chat tanpa verifikasi. Konten baru: karakter Claret
+(1611) & Roxy (1621), 5 W-Engine baru (12016/13017/13021/14161/14162),
+13 monster baru (monster_tags 333), prop baru 21301 (Laceration DMG) &
+32401 (Automatic Sharpness Accumulation — sudah di PROP_ID_TO_NAME).
+
 ## ⚠️ PERINGATAN KRITIS — field name fabrication dari agent lain
 
 **Kejadian nyata**: pesan (ngaku hasil analisis, sitasi link

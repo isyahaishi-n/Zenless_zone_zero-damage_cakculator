@@ -1918,5 +1918,83 @@
   "size": "Large",
   "faction": "Ether",
   "rarity": 2
+ },
+ "Monster_Greatsworder": {
+  "rank": "LittleMonster",
+  "size": "Small",
+  "faction": "Bios",
+  "rarity": 1
+ },
+ "Monster_Halberdier": {
+  "rank": "LittleMonster",
+  "size": "Small",
+  "faction": "Bios",
+  "rarity": 1
+ },
+ "Monster_RoscaSolider": {
+  "rank": "LittleMonster",
+  "size": "Small",
+  "faction": "Bios",
+  "rarity": 1
+ },
+ "Monster_EvolvedCannoneer": {
+  "rank": "LittleMonster",
+  "size": "Small",
+  "faction": "Bios",
+  "rarity": 1
+ },
+ "Monster_EvolvedRifleman": {
+  "rank": "LittleMonster",
+  "size": "Small",
+  "faction": "Bios",
+  "rarity": 1
+ },
+ "Monster_EvolvedBlader": {
+  "rank": "LittleMonster",
+  "size": "Small",
+  "faction": "Bios",
+  "rarity": 1
+ },
+ "Monster_EvolvedHeavyJaeger": {
+  "rank": "LittleMonster",
+  "size": "Small",
+  "faction": "Bios",
+  "rarity": 1
+ },
+ "Monster_EvolvedFootRover": {
+  "rank": null,
+  "size": "Middle",
+  "faction": "Mech",
+  "rarity": 2
+ },
+ "Monster_EvolvedHeavyStriker": {
+  "rank": null,
+  "size": "Middle",
+  "faction": "Mech",
+  "rarity": 2
+ },
+ "Monster_PcyHACMecha": {
+  "rank": "Boss",
+  "size": "Middle",
+  "faction": "Mech",
+  "rarity": 3
+ },
+ "Monster_HACMecha": {
+  "rank": "Boss",
+  "size": "Middle",
+  "faction": "Mech",
+  "rarity": 3
+ },
+ "Monster_Larval": {
+  "rank": "MainStoryBoss",
+  "size": "Large",
+  "faction": "Ether",
+  "rarity": 4
+ },
+ "Monster_Mutant_HC": {
+  "rank": "MainStoryBoss",
+  "size": "Large",
+  "faction": "Ether",
+  "rarity": 4
  }
 }

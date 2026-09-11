@@ -4,15 +4,15 @@
   "generated_by": "mindscape_passive_gen.py",
   "generation_policy": "ALL effect values are extracted mechanically from the raw avatar *_Talent_0X_Desc_01(_Realign) text of the same avatar id via TextMap EN + ENOverwrite merge (Realign post-rework text preferred). No values are hardcoded. Every effect carries evidence (exact sentence) + evidence_key; each level keeps its full raw text. M3/M5 skill bumps are mechanically verified from template flags (PPAGKJLLCIM==2 + Common_Talent_Desc + empty params). Numeric clauses that no pattern matched are kept as effect_type='unparsed' with needs_review=true.",
   "local_dataset": {
-    "avatar_count": 58,
+    "avatar_count": 60,
     "source_files": [
-      "AvatarTalentTemplateTb.json",
-      "TextMap_ENTemplateTb.json",
-      "TextMap_ENOverwriteTemplateTb.json",
-      "avatars.json"
+      "data/AvatarTalentTemplateTb.json",
+      "data/TextMap_ENTemplateTb.json",
+      "data/TextMap_ENOverwriteTemplateTb.json",
+      "data/avatars.json"
     ],
     "template_source_schema": {
-      "template_file": "AvatarTalentTemplateTb.json",
+      "template_file": "data/AvatarTalentTemplateTb.json",
       "avatar_id_field": "PJABHBNCJOI",
       "level_field": "PJBKBALOBEH",
       "title_key_field": "PADNNKFLNLG",
@@ -23,9 +23,9 @@
       "ui_marker_field": "GFPKLHKBGKG",
       "note": "GFPKLHKBGKG is a per-avatar UI marker (5011-5591), NOT stat props - there is no numeric mindscape table; effect numbers are embedded in text."
     },
-    "effect_count": 382,
-    "unparsed_effect_count": 66,
-    "levels_needing_review": 58
+    "effect_count": 398,
+    "unparsed_effect_count": 70,
+    "levels_needing_review": 62
   },
   "avatars": [
     {
@@ -9955,6 +9955,388 @@
             }
           ],
           "needs_review": false
+        }
+      }
+    },
+    {
+      "id": 1611,
+      "name": "Claret",
+      "codename": "Claret",
+      "rarity": 4,
+      "profession": "Armorer",
+      "levels": {
+        "1": {
+          "kind": "effects",
+          "title_key": "Claret_Talent_01_Title_Realign",
+          "title": "Bloodstained Chronicle",
+          "text_key": "Claret_Talent_01_Desc_01_Realign",
+          "text": "When Claret's attacks hit enemies and trigger Laceration, Gash Buildup Rate increases by 20%. The DMG Multiplier of Maim triggered by Claret increases to 130% of its original value.",
+          "effects": [
+            {
+              "key": "unparsed",
+              "effect_type": "unparsed",
+              "condition": {
+                "type": "toggle",
+                "label": "When Claret's attacks hit enemies and trigger Laceration"
+              },
+              "unconditional": false,
+              "value": null,
+              "evidence": "When Claret's attacks hit enemies and trigger Laceration, Gash Buildup Rate increases by 20%.",
+              "evidence_key": "Claret_Talent_01_Desc_01_Realign",
+              "needs_review": true,
+              "review_reason": "no effect pattern matched this numeric clause"
+            },
+            {
+              "key": "passive_amplification",
+              "effect_type": "passive_amplification",
+              "condition": {
+                "type": "always",
+                "label": "Always"
+              },
+              "unconditional": true,
+              "evidence": "The DMG Multiplier of Maim triggered by Claret increases to 130% of its original value.",
+              "evidence_key": "Claret_Talent_01_Desc_01_Realign",
+              "value": 130.0,
+              "unit": "percent"
+            }
+          ],
+          "needs_review": true
+        },
+        "2": {
+          "kind": "effects",
+          "title_key": "Claret_Talent_02_Title_Realign",
+          "title": "Crown of Inherited Flame",
+          "text_key": "Claret_Talent_02_Desc_01_Realign",
+          "text": "The maximum duration of Crimson Inscription is extended by 2s. While Claret is in the Crimson Inscription state, or while using a Chain Attack, Ultimate, Counter Assist, or Assist Follow-Up, attacks ignore 18% of the target's Electric RES.",
+          "effects": [
+            {
+              "key": "unparsed",
+              "effect_type": "unparsed",
+              "condition": {
+                "type": "always",
+                "label": "Always"
+              },
+              "unconditional": false,
+              "value": null,
+              "evidence": "The maximum duration of Crimson Inscription is extended by 2s.",
+              "evidence_key": "Claret_Talent_02_Desc_01_Realign",
+              "needs_review": true,
+              "review_reason": "no effect pattern matched this numeric clause"
+            },
+            {
+              "key": "res_ignore",
+              "effect_type": "res_ignore",
+              "condition": {
+                "type": "toggle",
+                "label": "While Claret is in the Crimson Inscription state"
+              },
+              "unconditional": false,
+              "evidence": "While Claret is in the Crimson Inscription state, or while using a Chain Attack, Ultimate, Counter Assist, or Assist Follow-Up, attacks ignore 18% of the target's Electric RES.",
+              "evidence_key": "Claret_Talent_02_Desc_01_Realign",
+              "value": 18.0,
+              "unit": "percent",
+              "elements": [
+                "Electric"
+              ],
+              "skill_types": [
+                "Assist Follow-Up",
+                "Chain Attack",
+                "Ultimate"
+              ]
+            }
+          ],
+          "needs_review": true
+        },
+        "3": {
+          "kind": "skill_bump",
+          "title_key": "Claret_Talent_03_Title_Realign",
+          "title": "Oath Written in Frosting",
+          "text_key": "Common_Talent_Desc",
+          "effect": "Basic Attack, Dodge, Assist, Special Attack, and Chain Attack Lv. +2",
+          "mechanically_verified": true,
+          "needs_review": false
+        },
+        "4": {
+          "kind": "effects",
+          "title_key": "Claret_Talent_04_Title_Realign",
+          "title": "Crimson Moon Wanderer",
+          "text_key": "Claret_Talent_04_Desc_01_Realign",
+          "text": "During the 3rd hit of Basic Attack: Bloodbloom Oath - Starforging, the time by which the consecutive slashes can be extended is increased. DMG dealt by Basic Attack: Bloodbloom Oath - Starforging's 3rd hit, Chain Attack: Bloodbloom Oath - Resonant Blood Pact, and Ultimate: Bloodbloom Oath - Trial After Trial increases by 20%.",
+          "effects": [
+            {
+              "key": "damage_bonus",
+              "effect_type": "damage_bonus",
+              "condition": {
+                "type": "always",
+                "label": "Always"
+              },
+              "unconditional": true,
+              "evidence": "DMG dealt by Basic Attack: Bloodbloom Oath - Starforging's 3rd hit, Chain Attack: Bloodbloom Oath - Resonant Blood Pact, and Ultimate: Bloodbloom Oath - Trial After Trial increases by 20%.",
+              "evidence_key": "Claret_Talent_04_Desc_01_Realign",
+              "value": 20.0,
+              "unit": "percent",
+              "skill_types": [
+                "Basic Attack",
+                "Chain Attack",
+                "Ultimate"
+              ]
+            }
+          ],
+          "needs_review": false
+        },
+        "5": {
+          "kind": "skill_bump",
+          "title_key": "Claret_Talent_05_Title_Realign",
+          "title": "Duskblood Furnace",
+          "text_key": "Common_Talent_Desc",
+          "effect": "Basic Attack, Dodge, Assist, Special Attack, and Chain Attack Lv. +2",
+          "mechanically_verified": true,
+          "needs_review": false
+        },
+        "6": {
+          "kind": "effects",
+          "title_key": "Claret_Talent_06_Title_Realign",
+          "title": "Warm Night's Dream",
+          "text_key": "Claret_Talent_06_Desc_01_Realign",
+          "text": "When the heavy attacks of Chain Attack: Bloodbloom Oath - Resonant Blood Pact and Ultimate: Bloodbloom Oath - Trial After Trial hit an enemy, Claret directly triggers 1 instance of single-target Maim without consuming Gash.",
+          "effects": [],
+          "needs_review": false
+        }
+      }
+    },
+    {
+      "id": 1621,
+      "name": "Roxy",
+      "codename": "Pryce",
+      "rarity": 4,
+      "profession": "Stun",
+      "levels": {
+        "1": {
+          "kind": "effects",
+          "title_key": "Pryce_Talent_01_Title_Realign",
+          "title": "Versatile Attendant",
+          "text_key": "Pryce_Talent_01_Desc_01_Realign",
+          "text": "When EX Special Attack: Kindly Rest in Peace hits, it reduces the enemy's All-Attribute RES by 15% for 50s. Repeated triggers reset the duration. CRIT DMG increases by 40%.",
+          "effects": [
+            {
+              "key": "unparsed",
+              "effect_type": "unparsed",
+              "condition": {
+                "type": "toggle",
+                "label": "When EX Special Attack: Kindly Rest in Peace hits"
+              },
+              "unconditional": false,
+              "value": null,
+              "evidence": "When EX Special Attack: Kindly Rest in Peace hits, it reduces the enemy's All-Attribute RES by 15% for 50s.",
+              "evidence_key": "Pryce_Talent_01_Desc_01_Realign",
+              "needs_review": true,
+              "review_reason": "no effect pattern matched this numeric clause"
+            },
+            {
+              "key": "crit_dmg",
+              "effect_type": "stat",
+              "condition": {
+                "type": "always",
+                "label": "Always"
+              },
+              "unconditional": true,
+              "evidence": "CRIT DMG increases by 40%.",
+              "evidence_key": "Pryce_Talent_01_Desc_01_Realign",
+              "value": 40.0,
+              "stat": "CRIT DMG",
+              "unit": "percent"
+            }
+          ],
+          "needs_review": true
+        },
+        "2": {
+          "kind": "effects",
+          "title_key": "Pryce_Talent_02_Title_Realign",
+          "title": "Clocking Out Myth",
+          "text_key": "Pryce_Talent_02_Desc_01_Realign",
+          "text": "EX Special Attack: Don't Catch a Chill deals 5% more Daze. For each Eye of the Storm detonated, gain 1 stack of Windflow, up to 3 stacks. During EX Special Attack: Don't Catch a Chill, if Roxy switches out after entering the Whirlwind state, she consumes all Windflow. Each stack consumed sustains the Whirlwind state for 0.2s, during which no Energy is consumed, up to a maximum of 0.6s. When EX Special Attack: Don't Catch a Chill hits an enemy, that enemy's Stun DMG Multiplier increases by 30% until the target recovers from Stun.",
+          "effects": [
+            {
+              "key": "daze_bonus",
+              "effect_type": "daze_bonus",
+              "condition": {
+                "type": "always",
+                "label": "Always"
+              },
+              "unconditional": true,
+              "evidence": "EX Special Attack: Don't Catch a Chill deals 5% more Daze.",
+              "evidence_key": "Pryce_Talent_02_Desc_01_Realign",
+              "value": 5.0,
+              "unit": "percent",
+              "skill_types": [
+                "EX Special Attack",
+                "Special Attack"
+              ]
+            },
+            {
+              "key": "stun_dmg_mult",
+              "effect_type": "stun_dmg_mult",
+              "condition": {
+                "type": "toggle",
+                "label": "When EX Special Attack: Don't Catch a Chill hits an enemy"
+              },
+              "unconditional": false,
+              "evidence": "When EX Special Attack: Don't Catch a Chill hits an enemy, that enemy's Stun DMG Multiplier increases by 30% until the target recovers from Stun.",
+              "evidence_key": "Pryce_Talent_02_Desc_01_Realign",
+              "value": 30.0,
+              "unit": "percent",
+              "skill_types": [
+                "EX Special Attack",
+                "Special Attack"
+              ]
+            }
+          ],
+          "needs_review": false
+        },
+        "3": {
+          "kind": "skill_bump",
+          "title_key": "Pryce_Talent_03_Title_Realign",
+          "title": "Tales of Insomnia",
+          "text_key": "Common_Talent_Desc",
+          "effect": "Basic Attack, Dodge, Assist, Special Attack, and Chain Attack Lv. +2",
+          "mechanically_verified": true,
+          "needs_review": false
+        },
+        "4": {
+          "kind": "effects",
+          "title_key": "Pryce_Talent_04_Title_Realign",
+          "title": "R.I.P.",
+          "text_key": "Pryce_Talent_04_Desc_01_Realign",
+          "text": "When a Defensive Assist successfully parries an enemy attack, Roxy gains 1 Energy, up to once per skill. When Dodge Counter: Returned Courtesy hits an enemy, it grants 2 Energy, up to once per skill. Ultimate: Requiem for the Night-Burial deals 20% more DMG and 10% more Daze.",
+          "effects": [
+            {
+              "key": "energy_flat",
+              "effect_type": "energy_flat",
+              "condition": {
+                "type": "toggle",
+                "label": "When a Defensive Assist successfully parries an enemy attack"
+              },
+              "unconditional": false,
+              "evidence": "When a Defensive Assist successfully parries an enemy attack, Roxy gains 1 Energy, up to once per skill.",
+              "evidence_key": "Pryce_Talent_04_Desc_01_Realign",
+              "value": 1.0,
+              "unit": "energy"
+            },
+            {
+              "key": "energy_flat_2",
+              "effect_type": "energy_flat",
+              "condition": {
+                "type": "toggle",
+                "label": "When Dodge Counter: Returned Courtesy hits an enemy"
+              },
+              "unconditional": false,
+              "evidence": "When Dodge Counter: Returned Courtesy hits an enemy, it grants 2 Energy, up to once per skill.",
+              "evidence_key": "Pryce_Talent_04_Desc_01_Realign",
+              "value": 2.0,
+              "unit": "energy",
+              "skill_types": [
+                "Dodge Counter"
+              ]
+            },
+            {
+              "key": "damage_bonus",
+              "effect_type": "damage_bonus",
+              "condition": {
+                "type": "always",
+                "label": "Always"
+              },
+              "unconditional": true,
+              "evidence": "Ultimate: Requiem for the Night-Burial deals 20% more DMG and 10% more Daze.",
+              "evidence_key": "Pryce_Talent_04_Desc_01_Realign",
+              "value": 20.0,
+              "unit": "percent",
+              "skill_types": [
+                "Ultimate"
+              ]
+            },
+            {
+              "key": "daze_bonus",
+              "effect_type": "daze_bonus",
+              "condition": {
+                "type": "always",
+                "label": "Always"
+              },
+              "unconditional": true,
+              "evidence": "Ultimate: Requiem for the Night-Burial deals 20% more DMG and 10% more Daze.",
+              "evidence_key": "Pryce_Talent_04_Desc_01_Realign",
+              "value": 10.0,
+              "unit": "percent",
+              "skill_types": [
+                "Ultimate"
+              ]
+            }
+          ],
+          "needs_review": false
+        },
+        "5": {
+          "kind": "skill_bump",
+          "title_key": "Pryce_Talent_05_Title_Realign",
+          "title": "Second Heartbeat",
+          "text_key": "Common_Talent_Desc",
+          "effect": "Basic Attack, Dodge, Assist, Special Attack, and Chain Attack Lv. +2",
+          "mechanically_verified": true,
+          "needs_review": false
+        },
+        "6": {
+          "kind": "effects",
+          "title_key": "Pryce_Talent_06_Title_Realign",
+          "title": "Eternity and the Clockwork Doll",
+          "text_key": "Pryce_Talent_06_Desc_01_Realign",
+          "text": "The DMG dealt by attacks ignores 15% of the target's Wind RES. When Special Attack: Forgive Me for Not Seeing You Off detonates Eyes of the Storm to generate a Giant Windstorm, the primary target is inflicted with Afterecho. A Giant Windstorm is generated at the target's location every 3s, for a total of 2 additional Giant Windstorms. Repeated triggers stack the number of additional Giant Windstorm instances generated and refresh the duration of Afterecho. The DMG dealt by the Giant Windstorm increases to 250% of its original value, and the Daze it inflicts increases by 20%.",
+          "effects": [
+            {
+              "key": "res_ignore",
+              "effect_type": "res_ignore",
+              "condition": {
+                "type": "always",
+                "label": "Always"
+              },
+              "unconditional": true,
+              "evidence": "The DMG dealt by attacks ignores 15% of the target's Wind RES.",
+              "evidence_key": "Pryce_Talent_06_Desc_01_Realign",
+              "value": 15.0,
+              "unit": "percent",
+              "elements": [
+                "Wind"
+              ]
+            },
+            {
+              "key": "unparsed",
+              "effect_type": "unparsed",
+              "condition": {
+                "type": "always",
+                "label": "Always"
+              },
+              "unconditional": false,
+              "value": null,
+              "evidence": "A Giant Windstorm is generated at the target's location every 3s, for a total of 2 additional Giant Windstorms.",
+              "evidence_key": "Pryce_Talent_06_Desc_01_Realign",
+              "needs_review": true,
+              "review_reason": "no effect pattern matched this numeric clause"
+            },
+            {
+              "key": "damage_bonus",
+              "effect_type": "damage_bonus",
+              "condition": {
+                "type": "always",
+                "label": "Always"
+              },
+              "unconditional": true,
+              "evidence": "The DMG dealt by the Giant Windstorm increases to 250% of its original value, and the Daze it inflicts increases by 20%.",
+              "evidence_key": "Pryce_Talent_06_Desc_01_Realign",
+              "value": 20.0,
+              "unit": "percent",
+              "elements": [
+                "Wind"
+              ]
+            }
+          ],
+          "needs_review": true
         }
       }
     }

@@ -212,8 +212,14 @@ class MonsterDB:
         slug = None
         base = codename
         stem = base[len("Monster_"):] if base.startswith("Monster_") else base
-        candidates = [base] + [base[: -len(s)] for s in _CARD_SUFFIXES
-                                if stem.endswith(s) and len(stem) > len(s)]
+        # strip suffix varian; sisa '_' di ujung juga dibuang (mis.
+        # Monster_Mutant_HC -> Monster_Mutant_HC -> Monster_Mutant_ -> Monster_Mutant).
+        candidates = [base]
+        for s in _CARD_SUFFIXES:
+            if stem.endswith(s) and len(stem) > len(s):
+                cand = base[: -len(s)].rstrip("_")
+                if cand != base and cand not in candidates:
+                    candidates.append(cand)
         for cand in candidates:
             url = NANOKA_ASSET_BASE + cand + ".webp"
             req = urllib.request.Request(url, method="HEAD",

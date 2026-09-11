@@ -105,3 +105,17 @@ buat HP monster (curve 1002) — lihat `monster_data.py`.
    dengan margin jelas (635/643 vs noise ~random). Pakai teknik ini
    kalau ketemu field obfuscated lain yang perlu di-crack, sebelum
    nyerah ke "dead end".
+
+8. **[BARU 2026-09-11, patch 3.2.0] Re-obfuscation antar patch itu NYATA**:
+   semua field code + root key berubah total antara 3.1.0 → 3.2.0
+   (contoh: root `MLOEFHJHCID` → `IAEFFFFLKNB`). Solusi yang terbukti:
+   (a) join row lama↔baru via ID stabil (skill id / monster id /
+   talent-title key), vote pasangan field yang value-nya identik,
+   majority-vote; (b) verifikasi mapping ke ground truth yang udah
+   diketahui (Tyrfing DEF=36/HP=1123/stun=5000/6×-2000, Miyabi
+   1091027 dmg 45470 gr 4140, curve1000 L60=1588); (c) install file baru
+   dengan nama field LAMA (rename inverse mapping saat install) supaya
+   kode existing gak perlu diubah. Mapping lengkap 3.1.0↔3.2.0:
+   `field_map.py` (satu-satunya source of truth). Patch berikutnya:
+   jalankan UPDATE.md Tahap 4 (kalibrasi damage_calc.py) SEBELUM pakai
+   data baru — mapping rusak = angka keliatan valid padahal salah field.
