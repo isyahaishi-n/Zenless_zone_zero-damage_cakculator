@@ -85,6 +85,8 @@ const G = {
   weaponLevels: null, weaponStars: null, equipmentLevels: null,
 };
 let showcase = null; // current player showcase data
+let SHOWCASE_LIST = []; // current showcase avatar list
+let currentAgent = null; // selected apiAvatar
 
 const $ = (sel) => document.querySelector(sel);
 const el = (tag, cls, html) => {
@@ -142,7 +144,7 @@ function renderCalcTarget() {
   wrap.appendChild(el("span", "enemy-label", "Lv."));
   wrap.appendChild(lvl);
 
-  const stunBtn = el("button", "btn" + (CALC.enemy.stunned ? "" : " btn-ghost"));
+  const stunBtn = el("button", "btn" + (CALC.enemy.stunned ? " btn--primary" : " btn--hollow"));
   stunBtn.textContent = CALC.enemy.stunned ? "Stunned ✓" : "Stunned";
   stunBtn.title = "Stun Modifier: damage × (1 + StunDamageTakenRatio)";
   wrap.appendChild(stunBtn);
@@ -207,7 +209,7 @@ function renderCalcTarget() {
   stunBtn.addEventListener("click", () => {
     CALC.enemy.stunned = !CALC.enemy.stunned;
     stunBtn.textContent = CALC.enemy.stunned ? "Stunned ✓" : "Stunned";
-    stunBtn.className = "btn" + (CALC.enemy.stunned ? "" : " btn-ghost");
+    stunBtn.className = "btn" + (CALC.enemy.stunned ? " btn--primary" : " btn--hollow");
     runCalc();
   });
 }
@@ -510,6 +512,46 @@ function setStatus(msg, isError) {
   s.classList.remove("hidden");
 }
 
+/* ---- battle-records icon maps (bundled from act.hoyolab.com) ---- */
+
+const HL_ICON = {
+  "HP": "prop-hp-icon.59cb16ef.png",
+  "ATK": "prop-atk-icon.7e5f0cb6.png",
+  "DEF": "prop-def-icon.a927965c.png",
+  "Impact": "prop-impact-icon.6d9c9282.png",
+  "CRIT Rate": "prop-crit-rate-icon.810d1d8e.png",
+  "CRIT DMG": "prop-crit-dmg-icon.b896fc9e.png",
+  "Anomaly Proficiency": "prop-anomaly-proficiency-icon.38adc36b.png",
+  "Anomaly Mastery": "prop-anomaly-mastery-icon.f4fc5970.png",
+  "PEN Ratio": "prop-pen-ratio-icon.90bc6385.png",
+  "PEN": "prop-pen-value-icon.7646b67f.png",
+  "Energy Regen": "prop-energy-regen-icon.2ec55369.png",
+};
+const hlIcon = (stat) => HL_ICON[stat] ? `/static/hoyolab/${HL_ICON[stat]}` : null;
+
+// skill index -> hoyolab skill icon + display label (battle records order)
+const BR_SKILLS = [
+  { index: 0, icon: "skill-icon-0.0d9692b6.png", label: "Basic Attack" },
+  { index: 2, icon: "skill-icon-2.d863591b.png", label: "Dodge" },
+  { index: 6, icon: "skill-icon-6.3fc55b66.png", label: "Assist" },
+  { index: 1, icon: "skill-icon-1.e2f84ffb.png", label: "Special Attack" },
+  { index: 3, icon: "skill-icon-3.afdb8abe.png", label: "Chain Attack" },
+  { index: 5, icon: "skill-icon-5.3d486da1.png", label: "Core Skill" },
+];
+
+const EQUIP_BG = {
+  S: { left: "equip-bg-left-S.dbbcb2de.png", right: "equip-bg-right-S.6aad8fa3.png" },
+  A: { left: "equip-bg-left-S.dbbcb2de.png", right: "equip-bg-right-S.6aad8fa3.png" },
+  B: { left: "equip-bg-left-S.dbbcb2de.png", right: "equip-bg-right-S.6aad8fa3.png" },
+};
+const WEAPON_BG = { S: "weapon-bg-S.c5c5eac9.png", A: "weapon-bg-S.c5c5eac9.png", B: "weapon-bg-S.c5c5eac9.png" };
+
+// stat rows order (battle records)
+const STAT_ROWS = [
+  "HP", "ATK", "DEF", "Impact", "CRIT Rate", "CRIT DMG",
+  "Anomaly Proficiency", "Anomaly Mastery", "PEN Ratio", "PEN", "Energy Regen",
+];
+
 function renderPlayer(api) {
   const box = $("#player");
   const soc = api.PlayerInfo && api.PlayerInfo.SocialDetail;
@@ -533,121 +575,42 @@ function renderPlayer(api) {
   box.classList.remove("hidden");
 }
 
-function charCard(apiAvatar) {
-  const excel = G.avatars[String(apiAvatar.Id)];
-  const card = el("div", "char-card");
-  if (!excel) {
-    card.innerHTML = `<div class="body"><div class="name">Unknown #${esc(apiAvatar.Id)}</div></div>`;
-    return card;
-  }
+/* ---- battle-records agent showcase ---- */
 
-  const stats = computeStats(apiAvatar) || {};
-  const rank = RANKS[excel.Rarity] || "?";
-  const elems = excel.ElementTypes || [];
-  const mainElem = elems[elems.length - 1] || "Physics";
-  const elemMeta = ELEMENTS[mainElem] || { name: mainElem, color: "#999" };
-  const profMeta = PROFESSIONS[excel.ProfessionType] || { name: excel.ProfessionType, color: "#999" };
-  const name = localize(excel.Name, String(apiAvatar.Id));
-  const core = apiAvatar.CoreSkillEnhancement;
-  const coreLetter = CORE_LETTERS[core] || String(core);
-
-  // banner
-  const banner = el("div", "banner");
-  const img = el("img", "portrait");
-  img.src = excel.Image;
-  img.alt = name;
-  banner.appendChild(img);
-  const badges = el("div", "badges");
-  badges.appendChild(el("span", `badge rank-${rank}`, esc(rank)));
-  const eb = el("span", "badge elem");
-  eb.style.color = elemMeta.color;
-  eb.style.borderColor = elemMeta.color + "80";
-  eb.textContent = elemMeta.name;
-  badges.appendChild(eb);
-  const pb = el("span", "badge");
-  pb.style.color = profMeta.color;
-  pb.style.borderColor = profMeta.color + "80";
-  pb.textContent = profMeta.name;
-  badges.appendChild(pb);
-  banner.appendChild(badges);
-  card.appendChild(banner);
-
-  // body
-  const body = el("div", "body");
-  const nameRow = el("div", "name-row");
-  nameRow.appendChild(el("div", "name", esc(name)));
-  nameRow.appendChild(el("div", "lvl", `Lv.${apiAvatar.Level} · M${apiAvatar.TalentLevel || 0} · Core ${coreLetter}`));
-  body.appendChild(nameRow);
-
-  const w = apiAvatar.Weapon;
-  if (w) {
-    const wmeta = G.weapons[String(w.Id)];
-    if (wmeta) {
-      const wname = localize(wmeta.ItemName, String(w.Id));
-      const wrank = RANKS[wmeta.Rarity] || "?";
-      body.appendChild(el("div", "sub", `${esc(wname)} · ${wrank}-rank · Lv.${w.Level}`));
+function renderRoleSwiper(list) {
+  const strip = $("#role-swiper");
+  strip.innerHTML = "";
+  for (const av of list) {
+    const excel = G.avatars[String(av.Id)];
+    const item = el("div", "role-swiper-item");
+    if (excel) {
+      const im = el("img");
+      im.src = excel.Image;
+      im.alt = localize(excel.Name, String(av.Id));
+      im.loading = "lazy";
+      item.appendChild(im);
     }
+    item.addEventListener("click", () => selectAgent(av));
+    strip.appendChild(item);
   }
-
-  const statsGrid = el("div", "stats");
-  for (const key of ["HP", "ATK", "DEF", "CRIT Rate", "CRIT DMG"]) {
-    const v = stats[key];
-    if (v === undefined) continue;
-    const row = el("div", "stat");
-    row.appendChild(el("span", "k", esc(key)));
-    row.appendChild(el("span", "v" + (PCT_STATS.has(key) ? " pct" : ""), esc(fmtStat(key, v))));
-    statsGrid.appendChild(row);
-  }
-  body.appendChild(statsGrid);
-
-  // calc button — terpisah dari click-card (card click = modal detail)
-  const calcBtn = el("button", "calc-btn", "⚔ Calculate");
-  calcBtn.title = "Hitung damage vs monster pilihan";
-  calcBtn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    openCalc(apiAvatar);
-  });
-  body.appendChild(calcBtn);
-  card.appendChild(body);
-
-  card.addEventListener("click", () => openModal(apiAvatar));
-  return card;
 }
 
-function renderChars(api) {
-  const grid = $("#chars");
-  grid.innerHTML = "";
-  const list = (api.PlayerInfo && api.PlayerInfo.ShowcaseDetail && api.PlayerInfo.ShowcaseDetail.AvatarList) || [];
-  if (!list.length) {
-    setStatus("This player's showcase is empty (agents hidden in-game).", true);
+function selectAgent(av) {
+  currentAgent = av;
+  document.querySelectorAll(".role-swiper-item").forEach((it, i) => {
+    it.classList.toggle("selected", SHOWCASE_LIST[i] === av);
+  });
+  renderAgentDetail(av);
+}
+
+function renderAgentDetail(apiAvatar) {
+  const excel = G.avatars[String(apiAvatar.Id)];
+  const sc = $("#showcase");
+  if (!excel) {
+    sc.classList.remove("hidden");
+    $("#role-name").textContent = `Unknown #${apiAvatar.Id}`;
     return;
   }
-  for (const av of list) grid.appendChild(charCard(av));
-}
-
-/* ===================== modal ===================== */
-
-function gearRow(icon, name, sub, statsHtml) {
-  const row = el("div", "gear-row");
-  const im = el("img", "gear-icon");
-  im.src = icon;
-  im.alt = "";
-  im.onerror = () => { im.style.visibility = "hidden"; };
-  row.appendChild(im);
-  const main = el("div", "gear-main");
-  main.appendChild(el("div", "gear-name", name));
-  if (sub) main.appendChild(el("div", "gear-sub", sub));
-  if (statsHtml) main.appendChild(el("div", "gear-stats", statsHtml));
-  row.appendChild(main);
-  return row;
-}
-
-function openModal(apiAvatar) {
-  const excel = G.avatars[String(apiAvatar.Id)];
-  const modal = $("#modal");
-  const backdrop = $("#modal-backdrop");
-  modal.innerHTML = "";
-  if (!excel) return;
 
   const stats = computeStats(apiAvatar) || {};
   const rank = RANKS[excel.Rarity] || "?";
@@ -660,130 +623,282 @@ function openModal(apiAvatar) {
   const core = apiAvatar.CoreSkillEnhancement;
   const coreLetter = CORE_LETTERS[core] || String(core);
 
-  // head
-  const head = el("div", "modal-head");
-  const img = el("img", "portrait");
+  // tint the detail bg by element color
+  $("#role-detail-bg").style.background =
+    `linear-gradient(180deg, ${elemMeta.color}2E 0%, transparent 42%), #101010`;
+
+  // portrait + giant marquee name
+  const img = $("#role-portrait-img");
   img.src = excel.Image;
-  head.appendChild(img);
-  const close = el("button", "modal-close", "✕");
-  close.addEventListener("click", closeModal);
-  head.appendChild(close);
-  const title = el("div", "modal-title");
-  title.appendChild(el("div", "name", esc(name)));
-  title.appendChild(el("div", "sub",
-    `${esc(rank)}-rank · <span style="color:${elemMeta.color}">${esc(elemMeta.name)}</span> · <span style="color:${profMeta.color}">${esc(profMeta.name)}</span> · Lv.${apiAvatar.Level} · M${mindscape} · Core ${esc(coreLetter)}`));
-  head.appendChild(title);
-  modal.appendChild(head);
+  img.alt = name;
+  const marquee = $("#marquee-name");
+  marquee.textContent = name;
 
-  const body = el("div", "modal-body");
+  // name + meta
+  $("#role-name").textContent = name;
+  const meta = $("#role-meta");
+  meta.innerHTML = "";
+  meta.appendChild(el("span", "rank-tag", `${rank}-Rank`));
+  meta.appendChild(el("span", "", `<span style="color:${elemMeta.color}">${esc(elemMeta.name)}</span>`));
+  meta.appendChild(el("span", "", `<span style="color:${profMeta.color}">${esc(profMeta.name)}</span>`));
+  meta.appendChild(el("span", "", `Lv.${apiAvatar.Level}`));
+  meta.appendChild(el("span", "", `M${mindscape}`));
+  meta.appendChild(el("span", "", `Core ${coreLetter}`));
 
-  // stats table
-  body.appendChild(el("div", "section-title", "Stats"));
-  const table = el("table", "stat-table");
-  for (const [key, value] of Object.entries(stats)) {
-    if (value === 0 && !["HP", "ATK", "DEF"].includes(key)) continue;
-    const tr = el("tr");
-    const td1 = el("td", "", esc(key));
-    const td2 = el("td", PCT_STATS.has(key) ? "pct" : "", esc(fmtStat(key, value)));
-    tr.appendChild(td1);
-    tr.appendChild(td2);
-    table.appendChild(tr);
+  // property panel
+  const props = $("#property-info");
+  props.innerHTML = "";
+  for (const key of STAT_ROWS) {
+    const v = stats[key];
+    if (v === undefined) continue;
+    const li = el("li");
+    const label = el("div", "prop-label");
+    const icon = hlIcon(key);
+    if (icon) {
+      const im = el("img");
+      im.src = icon;
+      im.alt = "";
+      label.appendChild(im);
+    }
+    label.appendChild(el("span", "", esc(key)));
+    const value = el("div", "prop-value");
+    value.appendChild(el("span", "final-prop", esc(fmtStat(key, v))));
+    li.appendChild(label);
+    li.appendChild(value);
+    props.appendChild(li);
   }
-  body.appendChild(table);
 
-  // weapon
+  renderEquipment(apiAvatar);
+  renderSkillsBR(apiAvatar);
+  sc.classList.remove("hidden");
+}
+
+function suitEffectText(suit, count) {
+  if (!suit || !suit.SetBonusProps) return "";
+  const parts = [];
+  for (const [pid, v] of Object.entries(suit.SetBonusProps)) {
+    parts.push(formatProp(Number(pid), v));
+  }
+  return parts.join(" · ");
+}
+
+function renderEquipment(apiAvatar) {
+  // ---- w-engine (center) ----
+  const wbox = $("#weapon-info");
+  wbox.innerHTML = "";
   const w = apiAvatar.Weapon;
   if (w) {
     const wmeta = G.weapons[String(w.Id)];
     if (wmeta) {
-      body.appendChild(el("div", "section-title", "W-Engine"));
       const wname = localize(wmeta.ItemName, String(w.Id));
       const wrank = RANKS[wmeta.Rarity] || "?";
-      const lvlRow = findRow(G.weaponLevels, { Rarity: wmeta.Rarity, Level: w.Level });
-      const starRow = findRow(G.weaponStars, { Rarity: wmeta.Rarity, BreakLevel: w.BreakLevel });
-      let statsHtml = "";
-      if (lvlRow && starRow && wmeta.MainStat) {
-        const mv = Math.floor(wmeta.MainStat.PropertyValue * (1 + lvlRow.EnhanceRate / 10000 + starRow.StarRate / 10000));
-        const sv = Math.floor(wmeta.SecondaryStat.PropertyValue * (1 + starRow.RandRate / 10000));
-        statsHtml = `${esc(formatProp(wmeta.MainStat.PropertyId, mv))} · ${esc(formatProp(wmeta.SecondaryStat.PropertyId, sv))}`;
-      }
-      body.appendChild(gearRow(wmeta.ImagePath, esc(wname),
-        `${esc(wrank)}-rank · Lv.${w.Level} · Mod ${w.BreakLevel}`, statsHtml));
+      const bg = el("img", "bg");
+      bg.src = `/static/hoyolab/${WEAPON_BG[wrank] || WEAPON_BG.S}`;
+      bg.alt = "";
+      wbox.appendChild(bg);
+      const icon = el("img", "icon");
+      icon.src = wmeta.ImagePath;
+      icon.alt = wname;
+      wbox.appendChild(icon);
+      const rankIm = el("img", "rank");
+      rankIm.src = "/static/hoyolab/role-star-1.e9cd3b86.png";
+      rankIm.alt = "";
+      wbox.appendChild(rankIm);
+      wbox.appendChild(el("span", "level", `Lv.${w.Level}`));
+      wbox.onclick = () => showEquipPop(wbox, {
+        name: wname, icon: wmeta.ImagePath,
+        meta: `${wrank}-Rank · Lv.${w.Level} · Mod ${w.BreakLevel}`,
+        rows: weaponRows(w, wmeta),
+      });
     }
   }
 
-  // drive discs
-  const equipped = [...(apiAvatar.EquippedList || [])].sort((a, b) => a.Slot - b.Slot);
-  if (equipped.length) {
-    body.appendChild(el("div", "section-title", "Drive Discs"));
-    for (const eq of equipped) {
-      const disc = eq.Equipment;
-      const meta = G.equipments.Items[String(disc.Id)];
-      if (!meta) continue;
-      const suit = G.equipments.Suits[String(meta.SuitId)];
-      const suitName = suit ? localize(suit.Name, String(meta.SuitId)) : "?";
-      const dr = RANKS[meta.Rarity] || "?";
-      const lvlRow = findRow(G.equipmentLevels, { Rarity: meta.Rarity, Level: disc.Level });
-      let statsHtml = "";
-      if (lvlRow && disc.MainPropertyList && disc.MainPropertyList[0]) {
-        const main = disc.MainPropertyList[0];
-        const mv = Math.floor(main.PropertyValue * (1 + lvlRow.EnhanceRate / 10000));
-        statsHtml = `<b>${esc(formatProp(main.PropertyId, mv))}</b>`;
-        for (const sub of disc.RandomPropertyList || []) {
-          const total = sub.PropertyValue * sub.PropertyLevel;
-          statsHtml += ` · ${esc(formatProp(sub.PropertyId, total))}`;
-        }
-      }
-      body.appendChild(gearRow(suit ? suit.Icon : "", esc(suitName),
-        `Slot ${eq.Slot} · ${esc(dr)}-rank · +${disc.Level}`, statsHtml));
-    }
+  // ---- drive disc slots 1-6 ----
+  const equipped = [...(apiAvatar.EquippedList || [])];
+  const bySlot = {};
+  for (const eq of equipped) bySlot[eq.Slot] = eq;
+
+  const suitCounts = {};
+  const suitOfSlot = {};
+  for (const eq of equipped) {
+    const meta = G.equipments.Items[String(eq.Equipment.Id)];
+    if (!meta) continue;
+    suitCounts[meta.SuitId] = (suitCounts[meta.SuitId] || 0) + 1;
+    suitOfSlot[eq.Slot] = meta.SuitId;
   }
 
-  // skills
-  const skills = [...(apiAvatar.SkillLevelList || [])].sort((a, b) => a.Index - b.Index);
-  if (skills.length) {
-    body.appendChild(el("div", "section-title", "Skills"));
-    const list = el("div", "skill-list");
-    for (const sk of skills) {
-      const label = SKILL_INDEX_TO_NAME[sk.Index] || `Skill ${sk.Index}`;
-      const base = sk.Level;
-      const eff = effectiveSkillLevel(base, mindscape);
-      const item = el("div", "skill-item");
-      item.appendChild(el("div", "sk-name", esc(label)));
-      const lvl = el("div", "sk-lvl", String(eff));
-      if (eff !== base) {
-        lvl.innerHTML = `${base} → ${eff} <span class="sk-bump">M${mindscape}</span>`;
-      }
-      item.appendChild(lvl);
-      list.appendChild(item);
-    }
-    body.appendChild(list);
+  for (let slot = 1; slot <= 6; slot++) {
+    const box = $(`#equip-slot-${slot}`);
+    box.innerHTML = "";
+    const eq = bySlot[slot];
+    if (!eq) continue;
+    const disc = eq.Equipment;
+    const meta = G.equipments.Items[String(disc.Id)];
+    if (!meta) continue;
+    const suit = G.equipments.Suits[String(meta.SuitId)];
+    const dr = RANKS[meta.Rarity] || "?";
+
+    const inner = el("div");
+    const im = el("img", "icon");
+    im.src = suit ? suit.Icon : "";
+    im.alt = "";
+    im.onerror = () => { im.style.visibility = "hidden"; };
+    inner.appendChild(im);
+    inner.appendChild(el("span", "level", `Lv.${disc.Level}`));
+    box.appendChild(inner);
+    const bg = el("img", "bg");
+    bg.src = `/static/hoyolab/${(slot <= 3 ? EQUIP_BG[dr].left : EQUIP_BG[dr].right)}`;
+    bg.alt = "";
+    box.appendChild(bg);
+    box.onclick = () => showEquipPop(box, {
+      name: suit ? localize(suit.Name, String(meta.SuitId)) : `Disc #${disc.Id}`,
+      icon: suit ? suit.Icon : "",
+      meta: `Slot ${slot} · ${dr}-Rank · +${disc.Level}`,
+      rows: discRows(disc, meta),
+    });
   }
 
-  // mindscapes
-  const msData = G.mindscapes && (G.mindscapes[name] || G.mindscapes[Object.keys(G.mindscapes).find((k) => localize(G.avatars[String(apiAvatar.Id)] && G.avatars[String(apiAvatar.Id)].Name, "") === k)] );
-  if (msData) {
-    body.appendChild(el("div", "section-title", "Mindscape Cinema"));
-    const grid = el("div", "mindscape-grid");
-    for (let m = 1; m <= 6; m++) {
-      const entry = msData[String(m)];
-      if (!entry) continue;
-      const card = el("div", "ms-card" + (m <= mindscape ? "" : " locked"));
-      card.appendChild(el("div", "ms-title", `M${m} · ${esc(entry.title || "")}`));
-      card.appendChild(el("div", "ms-desc", esc(entry.desc || "")));
-      grid.appendChild(card);
-    }
-    body.appendChild(grid);
+  // ---- set effects ----
+  const effBox = $("#suit-effects");
+  effBox.innerHTML = "";
+  effBox.appendChild(el("h3", "", "Active Set Effects"));
+  const ul = el("ul");
+  for (const [sid, count] of Object.entries(suitCounts)) {
+    if (count < 2) continue;
+    const suit = G.equipments.Suits[sid];
+    if (!suit) continue;
+    const li = el("li");
+    const inner = el("div");
+    const texts = el("div", "suit-texts");
+    const nm = localize(suit.Name, sid);
+    texts.appendChild(el("p", "", esc(`${nm} [${count}/4]`)));
+    texts.appendChild(el("p", "", esc(suitEffectText(suit, count))));
+    const ic = el("img");
+    ic.src = "/static/hoyolab/weapon-suit-icon.f75f0d28.png";
+    ic.alt = "";
+    inner.appendChild(texts);
+    inner.appendChild(ic);
+    li.appendChild(inner);
+    ul.appendChild(li);
   }
-
-  modal.appendChild(body);
-  backdrop.classList.remove("hidden");
-  document.body.style.overflow = "hidden";
+  if (!ul.children.length) {
+    const li = el("li");
+    const inner = el("div");
+    inner.appendChild(el("div", "suit-texts", "<p>No set effects</p>"));
+    li.appendChild(inner);
+    ul.appendChild(li);
+  }
+  effBox.appendChild(ul);
 }
 
-function closeModal() {
-  $("#modal-backdrop").classList.add("hidden");
-  document.body.style.overflow = "";
+function weaponRows(w, wmeta) {
+  const rows = [];
+  const lvlRow = findRow(G.weaponLevels, { Rarity: wmeta.Rarity, Level: w.Level });
+  const starRow = findRow(G.weaponStars, { Rarity: wmeta.Rarity, BreakLevel: w.BreakLevel });
+  if (lvlRow && starRow && wmeta.MainStat) {
+    const mv = Math.floor(wmeta.MainStat.PropertyValue * (1 + lvlRow.EnhanceRate / 10000 + starRow.StarRate / 10000));
+    const sv = Math.floor(wmeta.SecondaryStat.PropertyValue * (1 + starRow.RandRate / 10000));
+    rows.push({ k: formatProp(wmeta.MainStat.PropertyId, mv), main: true });
+    rows.push({ k: formatProp(wmeta.SecondaryStat.PropertyId, sv), main: false });
+  }
+  return rows;
+}
+
+function discRows(disc, meta) {
+  const rows = [];
+  const lvlRow = findRow(G.equipmentLevels, { Rarity: meta.Rarity, Level: disc.Level });
+  if (lvlRow && disc.MainPropertyList && disc.MainPropertyList[0]) {
+    const main = disc.MainPropertyList[0];
+    const mv = Math.floor(main.PropertyValue * (1 + lvlRow.EnhanceRate / 10000));
+    rows.push({ k: formatProp(main.PropertyId, mv), main: true });
+  }
+  for (const sub of disc.RandomPropertyList || []) {
+    rows.push({ k: formatProp(sub.PropertyId, sub.PropertyValue * sub.PropertyLevel), main: false });
+  }
+  return rows;
+}
+
+let popEl = null;
+function showEquipPop(anchor, data) {
+  hideEquipPop();
+  popEl = el("div", "equip-pop");
+  const head = el("div", "ep-head");
+  if (data.icon) {
+    const im = el("img");
+    im.src = data.icon;
+    im.alt = "";
+    head.appendChild(im);
+  }
+  const hd = el("div");
+  hd.appendChild(el("div", "nm", esc(data.name)));
+  hd.appendChild(el("div", "meta", esc(data.meta)));
+  head.appendChild(hd);
+  popEl.appendChild(head);
+  const body = el("div", "ep-body");
+  for (const r of data.rows || []) {
+    body.appendChild(el("div", "row" + (r.main ? " main" : ""), `<span class="k">${esc(r.k)}</span>`));
+  }
+  if (!(data.rows || []).length) body.appendChild(el("div", "row", "<span class='k'>No stats</span>"));
+  popEl.appendChild(body);
+  document.body.appendChild(popEl);
+  const rect = anchor.getBoundingClientRect();
+  const pw = 300;
+  let left = rect.left + rect.width / 2 - pw / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - pw - 8));
+  let top = rect.bottom + 8;
+  if (top + 220 > window.innerHeight) top = Math.max(8, rect.top - 226);
+  popEl.style.left = left + "px";
+  popEl.style.top = top + "px";
+  setTimeout(() => {
+    document.addEventListener("click", hideEquipPopOnOutside, { once: false });
+  }, 0);
+}
+function hideEquipPopOnOutside(e) {
+  if (popEl && !popEl.contains(e.target) && !e.target.closest(".equip-info") && !e.target.closest(".weapon-info")) {
+    hideEquipPop();
+  }
+}
+function hideEquipPop() {
+  if (popEl) { popEl.remove(); popEl = null; }
+  document.removeEventListener("click", hideEquipPopOnOutside);
+}
+
+function renderSkillsBR(apiAvatar) {
+  const ul = $("#skill-list-br");
+  ul.innerHTML = "";
+  const mindscape = apiAvatar.TalentLevel || 0;
+  const levels = {};
+  for (const sk of apiAvatar.SkillLevelList || []) levels[sk.Index] = sk.Level;
+  for (const s of BR_SKILLS) {
+    const base = levels[s.index] ?? 0;
+    const eff = effectiveSkillLevel(base, mindscape);
+    const li = el("li", "skill-item");
+    const outer = el("div");
+    const inner = el("div");
+    const im = el("img", "skill-icon");
+    im.src = `/static/hoyolab/${s.icon}`;
+    im.alt = s.label;
+    inner.appendChild(im);
+    const p = el("p", "", `<span>${String(eff).padStart(2, "0")}</span><span>LEVEL</span>`);
+    inner.appendChild(p);
+    inner.appendChild(el("h2", "", esc(s.label)));
+    inner.appendChild(el("h3", "", base !== eff ? `Base ${base} → ${eff} (M${mindscape})` : " "));
+    outer.appendChild(inner);
+    li.appendChild(outer);
+    ul.appendChild(li);
+  }
+}
+
+function renderShowcase(api) {
+  const list = (api.PlayerInfo && api.PlayerInfo.ShowcaseDetail && api.PlayerInfo.ShowcaseDetail.AvatarList) || [];
+  if (!list.length) {
+    setStatus("This player's showcase is empty (agents hidden in-game).", true);
+    $("#showcase").classList.add("hidden");
+    return;
+  }
+  SHOWCASE_LIST = list;
+  renderRoleSwiper(list);
+  selectAgent(list[0]);
 }
 
 /* ===================== data loading ===================== */
@@ -805,8 +920,11 @@ async function loadGameData() {
 
 async function loadShowcase(url) {
   setStatus("Loading…");
-  $("#chars").innerHTML = "";
+  $("#showcase").classList.add("hidden");
   $("#player").classList.add("hidden");
+  $("#calc-section").classList.add("hidden");
+  CALC.current = null;
+  showResults();
   try {
     const res = await fetch(url);
     const data = await res.json();
@@ -814,10 +932,24 @@ async function loadShowcase(url) {
     showcase = data;
     setStatus("");
     renderPlayer(data);
-    renderChars(data);
+    renderShowcase(data);
   } catch (e) {
     setStatus(e.message || "Failed to load showcase", true);
   }
+}
+
+/* ===================== landing/results view switch ===================== */
+
+function showLanding() {
+  $("#hero").classList.remove("hidden");
+  $("#results").classList.add("hidden");
+  document.body.style.overflow = "";
+}
+
+function showResults() {
+  $("#hero").classList.add("hidden");
+  $("#results").classList.remove("hidden");
+  window.scrollTo(0, 0);
 }
 
 /* ===================== boot ===================== */
@@ -833,20 +965,20 @@ async function boot() {
     loadShowcase(`/api/uid/${uid}`);
   });
   $("#btn-sample").addEventListener("click", () => loadShowcase("/api/local"));
-  $("#modal-backdrop").addEventListener("click", (e) => {
-    if (e.target === $("#modal-backdrop")) closeModal();
-  });
+  $("#btn-back").addEventListener("click", showLanding);
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") closeModal();
+    if (e.key === "Escape") hideEquipPop();
   });
   $("#calc-close").addEventListener("click", () => {
     $("#calc-section").classList.add("hidden");
     CALC.current = null;
   });
+  $("#btn-calc").addEventListener("click", () => {
+    if (currentAgent) openCalc(currentAgent);
+  });
 
   try {
     await loadGameData();
-    loadShowcase("/api/local"); // start with bundled sample
     loadMonsterList().catch(() => {}); // preload monster list (background)
   } catch (e) {
     setStatus("Failed to load game data: " + e.message, true);

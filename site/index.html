@@ -4,46 +4,128 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="Zenless Zone Zero agent showcase viewer with full stat calculation — powered by enka.network data">
-<meta name="theme-color" content="#0b0b10">
+<meta name="theme-color" content="#000000">
 <title>ZZZ Agent Showcase</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230b0b10'/%3E%3Cpath d='M6 6h20v6H12v2h12v6H12v2h14v6H6z' fill='%23ffd24d'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23000'/%3E%3Cpath d='M6 6h20v6H12v2h12v6H12v2h14v6H6z' fill='%23ffea00'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-<header class="topbar">
-  <div class="brand">
-    <span class="brand-tape">ZZZ</span>
-    <h1>Agent Showcase</h1>
-  </div>
-  <form id="uid-form" class="uid-form" autocomplete="off">
-    <input id="uid-input" inputmode="numeric" maxlength="12" placeholder="Enter UID…">
-    <button type="submit" class="btn">Load</button>
-    <button type="button" id="btn-sample" class="btn btn-ghost">Sample</button>
-  </form>
-</header>
 
-<main>
+<!-- ===== hero landing ===== -->
+<section id="hero" class="hero">
+  <div class="hero-scan"></div>
+  <div class="hero-grid"></div>
+
+  <header class="hero-top">
+    <div class="brand">
+      <span class="brand-tape">ZZZ</span>
+      <span class="brand-name">Agent&nbsp;Showcase</span>
+    </div>
+    <nav class="hero-links">
+      <a href="https://enka.network" target="_blank" rel="noopener">enka.network</a>
+      <a href="https://zenless-zone-zero.fandom.com/wiki/Damage" target="_blank" rel="noopener">Damage&nbsp;wiki</a>
+    </nav>
+  </header>
+
+  <div class="hero-core">
+    <div class="hero-kicker"><span></span>PROXY&nbsp;CONNECTION<span></span></div>
+    <h1 class="hero-title">AGENT<br>SHOWCASE</h1>
+    <p class="hero-sub">Enter your in-game UID to pull your showcase — full stats, W-Engine, Drive Discs &amp; per-skill damage calculation.</p>
+
+    <form id="uid-form" class="uid-form" autocomplete="off">
+      <div class="uid-input-wrap">
+        <span class="zi z-icon-search" aria-hidden="true"></span>
+        <input id="uid-input" inputmode="numeric" maxlength="12" placeholder="Enter UID..." aria-label="UID">
+      </div>
+      <button type="submit" class="btn btn--primary">CONNECT</button>
+      <button type="button" id="btn-sample" class="btn btn--plain">DEMO</button>
+    </form>
+
+    <p class="hero-hint">UID is on your in-game profile &middot; showcase must be public</p>
+  </div>
+</section>
+
+<!-- ===== results: battle-records style agent showcase ===== -->
+<main id="results" class="results hidden">
   <div id="status" class="status hidden"></div>
-  <section id="player" class="hidden"></section>
-  <section id="chars" class="char-grid"></section>
+
+  <header class="results-bar">
+    <button type="button" id="btn-back" class="btn btn--mini btn--hollow">&larr; NEW SEARCH</button>
+    <div class="brand">
+      <span class="brand-tape sm">ZZZ</span>
+      <span class="brand-name sm">Agent&nbsp;Showcase</span>
+    </div>
+  </header>
+
+  <section id="player" class="player hidden"></section>
+
+  <section id="showcase" class="showcase hidden">
+    <!-- character selector strip -->
+    <div id="role-swiper" class="role-swiper"></div>
+
+    <!-- agent detail -->
+    <div class="role-detail">
+      <div class="role-detail-bg" id="role-detail-bg"></div>
+      <div class="role-portrait">
+        <div class="marquee-name-wrap"><div id="marquee-name" class="marquee-name"></div></div>
+        <img id="role-portrait-img" alt="">
+      </div>
+
+      <div class="role-main">
+        <div class="infos-container">
+          <div id="role-infos" class="role-infos">
+            <div class="role-base">
+              <div id="role-name" class="role-name-lg"></div>
+              <div id="role-meta" class="role-meta"></div>
+            </div>
+            <ul id="property-info" class="property-info"></ul>
+          </div>
+        </div>
+
+        <div class="equipment-info">
+          <h2><span>Equipment</span> <img src="/static/hoyolab/title-icon.0b3eeb69.png" alt=""></h2>
+          <div id="suit-effects" class="suit-effects"></div>
+          <div class="main-content">
+            <img class="mc-bg" src="/static/hoyolab/equipment-main-content-bg.7de6072a.png" alt="">
+            <div id="weapon-info" class="weapon-info"></div>
+            <div id="equip-slot-1" class="equip-info equip-info-1"></div>
+            <div id="equip-slot-2" class="equip-info equip-info-2"></div>
+            <div id="equip-slot-3" class="equip-info equip-info-3"></div>
+            <div id="equip-slot-4" class="equip-info equip-info-4"></div>
+            <div id="equip-slot-5" class="equip-info equip-info-5"></div>
+            <div id="equip-slot-6" class="equip-info equip-info-6"></div>
+          </div>
+        </div>
+
+        <div class="skill-info">
+          <h2><span>Skills</span> <img src="/static/hoyolab/title-icon.0b3eeb69.png" alt=""></h2>
+          <ul id="skill-list-br"></ul>
+        </div>
+      </div>
+
+      <div class="role-actions">
+        <button type="button" id="btn-calc" class="btn btn--primary">⚔ Calculate Damage</button>
+      </div>
+    </div>
+  </section>
 
   <section id="calc-section" class="calc-section hidden">
     <div class="calc-head">
       <h2 id="calc-title">Damage Calculation</h2>
-      <button type="button" id="calc-close" class="btn btn-ghost">✕</button>
+      <button type="button" id="calc-close" class="btn btn--mini btn--hollow">&#10005;</button>
     </div>
     <div id="calc-target" class="calc-target"></div>
     <div id="calc-body"></div>
   </section>
+
+  <footer class="footer">
+    Data via enka.network &middot; fan-made tool, not affiliated with HoYoverse
+  </footer>
 </main>
 
 <div id="modal-backdrop" class="modal-backdrop hidden">
   <div id="modal" class="modal"></div>
 </div>
-
-<footer class="footer">
-  Data via enka.network · fan-made tool, not affiliated with HoYoverse
-</footer>
 
 <script src="/static/app.js"></script>
 </body>
