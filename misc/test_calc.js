@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
-const base = __dirname;
+// Data & app.js hidup di root repo; test ini ada di misc/.
+const base = path.resolve(__dirname, "..");
 
 // minimal DOM stubs so app.js parses without a browser
 global.document = {
@@ -22,12 +23,12 @@ const { G, computeStats, fmtStat } = require(modPath);
 fs.unlinkSync(modPath);
 
 const j = (p) => JSON.parse(fs.readFileSync(path.join(base, p), "utf-8"));
-G.avatars = j("avatars.json");
-G.weapons = j("weapons.json");
-G.equipments = j("equipments.json");
-G.locale = j("locale_en.json");
-G.mindscapes = j("mindscapes.json");
-G.mindscapeProps = j("mindscape_props.json");
+G.avatars = j("data/avatars.json");
+G.weapons = j("data/weapons.json");
+G.equipments = j("data/equipments.json");
+G.locale = j("data/locale_en.json");
+G.mindscapes = j("data/mindscapes.json");
+G.mindscapeProps = j("data/mindscape_props.json");
 
 const tb = (p, m) => {
   const raw = j(p);
@@ -38,11 +39,11 @@ const tb = (p, m) => {
     return o;
   });
 };
-G.weaponLevels = tb("WeaponLevelTemplateTb.json", { APDCBEGPHJO: "Rarity", GJGMIBEOBHP: "Level", EOMOGNMMOEJ: "EnhanceRate" });
-G.weaponStars = tb("WeaponStarTemplateTb.json", { APDCBEGPHJO: "Rarity", LMBCLMNIJNA: "BreakLevel", EENDAEFLEJO: "StarRate", IIPAHNFIJOH: "RandRate" });
-G.equipmentLevels = tb("EquipmentLevelTemplateTb.json", { APDCBEGPHJO: "Rarity", GJGMIBEOBHP: "Level", EOMOGNMMOEJ: "EnhanceRate" });
+G.weaponLevels = tb("data/WeaponLevelTemplateTb.json", { APDCBEGPHJO: "Rarity", GJGMIBEOBHP: "Level", EOMOGNMMOEJ: "EnhanceRate" });
+G.weaponStars = tb("data/WeaponStarTemplateTb.json", { APDCBEGPHJO: "Rarity", LMBCLMNIJNA: "BreakLevel", EENDAEFLEJO: "StarRate", IIPAHNFIJOH: "RandRate" });
+G.equipmentLevels = tb("data/EquipmentLevelTemplateTb.json", { APDCBEGPHJO: "Rarity", GJGMIBEOBHP: "Level", EOMOGNMMOEJ: "EnhanceRate" });
 
-const api = j("1303558818.json");
+const api = j("dumps/1303558818.json");
 const list = api.PlayerInfo.ShowcaseDetail.AvatarList;
 
 // expected values from the python calculator (zzz_enka_stat_calc_multichar.py)

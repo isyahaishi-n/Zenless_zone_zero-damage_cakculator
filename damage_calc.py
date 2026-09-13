@@ -452,6 +452,18 @@ def build_mindscape_toggles(mapped: dict, avatar_id: int, mindscape_rank: int = 
     return entries
 
 
+def _panel_value(panel: dict, stat_key: str):
+    """Lookup stat di panel dengan dua casing ('Anomaly Mastery' dari
+    final_stats / 'anomaly_mastery' dari threshold_stat mapped files)."""
+    if stat_key in panel:
+        return panel[stat_key]
+    title = stat_key.replace("_", " ").title()
+    for k, v in panel.items():
+        if k.lower().replace(" ", "_") == stat_key or k == title:
+            return v
+    return None
+
+
 def evaluate_thresholds(toggles: list, panel: dict = None) -> list:
     """Auto-evaluasi efek threshold — HANYA yang deterministik dari stat
     panel / jumlah stack (bukan deteksi trigger combat):
@@ -468,10 +480,11 @@ def evaluate_thresholds(toggles: list, panel: dict = None) -> list:
     notes = []
     for t in toggles:
         if t.mode == "threshold":
-            if panel is None or t.threshold_stat not in panel:
+            val = _panel_value(panel or {}, t.threshold_stat)
+            if val is None:
                 notes.append((t, f"SKIP: panel stat '{t.threshold_stat}' nggak diketahui"))
                 continue
-            val = float(panel[t.threshold_stat])
+            val = float(val)
             if t.threshold_op == "<=":
                 ok = val <= t.threshold_value
             else:
@@ -705,7 +718,10 @@ def compute_final_damage(
     mods = mods or CombatModifiers()
 
     atk_combat = atk_panel * (1 + mods.atk_bonus_pct_cond / 100) + mods.atk_flat_cond
-    crit_dmg_combat = crit_dmg_panel_pct + mods.crit_dmg_bonus_pct_cond
+    # CRIT Rate/DMG floor game (okMuzzy v3.1.0: MIN(1, CR) & MAX(0.5, CD);
+    # clamp CR 0-100 tetap): CR efektif minimal 5%, CD efektif minimal 50%.
+    crit_rate_combat = min(max(crit_rate_panel_pct + mods.crit_rate_bonus_pct_cond, 5.0), 100.0)
+    crit_dmg_combat = max(crit_dmg_panel_pct + mods.crit_dmg_bonus_pct_cond, 50.0)
     skill_mult = skill_mult_pct + mods.skill_mult_bonus_pct
     dmg_bonus = dmg_bonus_panel_pct + mods.damage_bonus_pct_cond
 
@@ -733,7 +749,6 @@ def compute_final_damage(
                 * stun_mult * dmg_taken_mult)
     crit = non_crit * (1 + crit_dmg_combat / 100)
 
-    crit_rate_combat = min(max(crit_rate_panel_pct + mods.crit_rate_bonus_pct_cond, 0.0), 100.0)
     expected = non_crit * (1 - crit_rate_combat / 100
                            + (crit_rate_combat / 100) * (1 + crit_dmg_combat / 100))
 
@@ -751,6 +766,96 @@ def compute_final_damage(
         "crit": crit,
         "expected": expected,
     }
+
+
+# ---------------------------------------------------------------------------
+# Pipeline per-snapshot (shared run.py & server.py)
+# ---------------------------------------------------------------------------
+
+def build_snapshot_toggles(snapshot: dict, wengines: dict, sets: dict,
+                           mindscapes: dict) -> list:
+    """Toggle list dari snapshot: W-Engine + set 4pc + mindscape.
+    (Bagian identik yang tadinya diduplikasi di run.py & server.py.)"""
+    toggles = []
+    weapon = snapshot.get("weapon") or {}
+    if weapon.get("id"):
+        toggles += build_wengine_toggles(wengines, weapon_id=weapon["id"],
+                                         phase=weapon.get("phase", 1))
+    for set_name in snapshot.get("set4pc", []) or []:
+        toggles += build_set4pc_toggles(sets, set_name=set_name)
+    toggles += build_mindscape_toggles(
+        mindscapes, avatar_id=snapshot["avatar_id"],
+        mindscape_rank=snapshot.get("mindscape", 0))
+    return toggles
+
+
+def compute_all_damage(snapshot: dict, enemy: "EnemyStats",
+                       wengines: dict, sets: dict, mindscapes: dict,
+                       enemy_stunned: bool = False,
+                       level_factor_curve: dict | None = None) -> tuple[list, list]:
+    """Hitung damage tiap hit non-hidden dari satu snapshot
+    (compute_avatar_snapshot) — versi shared run.py & server.py.
+
+    Fix vs versi lama (yang duplikat di run.py/server.py):
+    - CRIT Rate panel dipass -> `expected` valid (bukan = non_crit).
+    - Elemental DMG bonus per-HIT dari elemen hit (bukan elemen karakter):
+      Kazahana hit-1 Miyabi Physical (GT 1086) walau karakter Ice.
+    - Scope toggle per-HIT: skill_type granular ('Dash Attack',
+      'Dodge Counter', 'Quick Assist', ...) + element hit — toggle scoped
+      kini benar-benar match.
+    - attacker_level dipass dari level karakter (level factor benar utk
+      karakter < Lv60).
+    - threshold dievaluasi dengan panel snapshot (Title Case key kini
+      diterima oleh evaluate_thresholds).
+
+    Return (rows, toggles): rows = dict per hit; toggles utk transparansi.
+    """
+    stats = snapshot["stats"]
+    toggles = build_snapshot_toggles(snapshot, wengines, sets, mindscapes)
+    evaluate_thresholds(toggles, panel=stats)  # mutasi t.enabled in-place
+
+    if level_factor_curve is None:
+        level_factor_curve = load_level_factor_curve()
+
+    results = []
+    for skill_idx, skill_data in snapshot.get("skills", {}).items():
+        for hit in skill_data["hits"]:
+            if hit.get("is_hidden"):
+                continue
+            # scope granular per hit: 'Dash Attack'/'Dodge Counter'/...
+            # (fallback label skill gabungan utk hit tanpa nama dikenal)
+            hit_skill_type = hit.get("skill_type") or skill_data["label"]
+            hit_element = hit.get("element") or snapshot.get("element", "Physical")
+            mods = aggregate_modifiers(toggles, skill_type=hit_skill_type,
+                                      element=hit_element)
+            r = compute_final_damage(
+                atk_panel=stats["ATK"],
+                skill_mult_pct=hit["damage_pct"],
+                crit_dmg_panel_pct=stats.get("CRIT DMG", 0.0),
+                enemy=enemy,
+                element=hit_element,
+                skill_type=hit_skill_type,
+                crit_rate_panel_pct=stats.get("CRIT Rate", 0.0),
+                dmg_bonus_panel_pct=stats.get(f"{hit_element} DMG", 0.0),
+                pen_ratio_pct=stats.get("PEN Ratio", 0.0),
+                pen_flat=stats.get("PEN", 0.0),
+                mods=mods,
+                attacker_level=int(snapshot.get("level", 60)),
+                level_factor_curve=level_factor_curve,
+                enemy_stunned=enemy_stunned,
+            )
+            results.append({
+                "skill_label": skill_data["label"],
+                "hit_name": hit["name"],
+                "hit_element": hit_element,
+                "hit_skill_type": hit_skill_type,
+                "damage_pct": hit["damage_pct"],
+                "daze_pct": hit.get("daze_pct", 0.0),
+                "non_crit": r["non_crit"],
+                "crit": r["crit"],
+                "expected": r["expected"],
+            })
+    return results, toggles
 
 
 # ---------------------------------------------------------------------------

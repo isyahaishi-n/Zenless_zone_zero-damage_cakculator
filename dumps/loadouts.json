@@ -1,5 +1,5 @@
 {
-  "source_profile": "1303558818.json",
+  "source_profile": "dumps/1303558818.json",
   "avatars": [
     {
       "avatar_id": 1091,
@@ -48,70 +48,90 @@
               "name": "Basic Attack: Kazahana",
               "damage_pct": 54.4,
               "daze_pct": 21.2,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Basic Attack",
+              "element": "Physical"
             },
             {
               "hit_id": 1091002,
               "name": "Basic Attack: Kazahana",
               "damage_pct": 59.3,
               "daze_pct": 41.2,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Basic Attack",
+              "element": "Physical"
             },
             {
               "hit_id": 1091003,
               "name": "Basic Attack: Kazahana",
               "damage_pct": 126.6,
               "daze_pct": 70.6,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Basic Attack",
+              "element": "Ice"
             },
             {
               "hit_id": 1091004,
               "name": "Basic Attack: Kazahana",
               "damage_pct": 193.3,
               "daze_pct": 123.9,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Basic Attack",
+              "element": "Ice"
             },
             {
               "hit_id": 1091005,
               "name": "Basic Attack: Kazahana",
               "damage_pct": 258.8,
               "daze_pct": 197.0,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Basic Attack",
+              "element": "Ice"
             },
             {
               "hit_id": 1091006,
               "name": "hit 1091006",
               "damage_pct": 126.6,
               "daze_pct": 0.0,
-              "is_hidden": true
+              "is_hidden": true,
+              "skill_type": "Basic Attack",
+              "element": "Ice"
             },
             {
               "hit_id": 1091027,
               "name": "Basic Attack: Shimotsuki",
               "damage_pct": 910.1,
               "daze_pct": 66.0,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Basic Attack",
+              "element": "Ice"
             },
             {
               "hit_id": 1091028,
               "name": "Basic Attack: Shimotsuki",
               "damage_pct": 1717.2,
               "daze_pct": 94.3,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Basic Attack",
+              "element": "Ice"
             },
             {
               "hit_id": 1091029,
               "name": "Basic Attack: Shimotsuki",
               "damage_pct": 4282.8,
               "daze_pct": 567.0,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Basic Attack",
+              "element": "Ice"
             },
             {
               "hit_id": 1091035,
               "name": "hit 1091035",
               "damage_pct": 720.0,
               "daze_pct": 44.0,
-              "is_hidden": true
+              "is_hidden": true,
+              "skill_type": "Basic Attack",
+              "element": "Ice"
             }
           ]
         },
@@ -124,35 +144,45 @@
               "name": "Special Attack: Miyuki",
               "damage_pct": 72.1,
               "daze_pct": 54.5,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Special Attack",
+              "element": "Ice"
             },
             {
               "hit_id": 1091009,
               "name": "EX Special Attack: Hisetsu",
               "damage_pct": 315.8,
               "daze_pct": 193.6,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "EX Special Attack",
+              "element": "Ice"
             },
             {
               "hit_id": 1091010,
               "name": "EX Special Attack: Hisetsu",
               "damage_pct": 472.5,
               "daze_pct": 289.8,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "EX Special Attack",
+              "element": "Ice"
             },
             {
               "hit_id": 1091011,
               "name": "EX Special Attack: Hisetsu",
               "damage_pct": 386.9,
               "daze_pct": 243.4,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "EX Special Attack",
+              "element": "Ice"
             },
             {
               "hit_id": 1091012,
               "name": "EX Special Attack: Hisetsu",
               "damage_pct": 580.3,
               "daze_pct": 365.1,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "EX Special Attack",
+              "element": "Ice"
             }
           ]
         },
@@ -165,35 +195,45 @@
               "name": "Dash Attack: Fuyubachi",
               "damage_pct": 42.6,
               "daze_pct": 17.1,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Dash Attack",
+              "element": "Physical"
             },
             {
               "hit_id": 1091014,
               "name": "Dodge Counter: Kan Suzume",
               "damage_pct": 402.7,
               "daze_pct": 283.1,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Dodge Counter",
+              "element": "Ice"
             },
             {
               "hit_id": 1091030,
               "name": "hit 1091030",
               "damage_pct": 192.2,
               "daze_pct": 77.6,
-              "is_hidden": true
+              "is_hidden": true,
+              "skill_type": "Dodge",
+              "element": "Ice"
             },
             {
               "hit_id": 1091031,
               "name": "hit 1091031",
               "damage_pct": 543.1,
               "daze_pct": 185.1,
-              "is_hidden": true
+              "is_hidden": true,
+              "skill_type": "Dodge",
+              "element": "Ice"
             },
             {
               "hit_id": 1091032,
               "name": "hit 1091032",
               "damage_pct": 543.1,
               "daze_pct": 924.6,
-              "is_hidden": true
+              "is_hidden": true,
+              "skill_type": "Dodge",
+              "element": "Ice"
             }
           ]
         },
@@ -206,28 +246,36 @@
               "name": "Chain Attack: Spring's Call",
               "damage_pct": 377.6,
               "daze_pct": 85.3,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Chain Attack",
+              "element": "Ice"
             },
             {
               "hit_id": 1091016,
               "name": "Chain Attack: Spring's Call",
               "damage_pct": 377.6,
               "daze_pct": 85.3,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Chain Attack",
+              "element": "Ice"
             },
             {
               "hit_id": 1091017,
               "name": "Chain Attack: Spring's Call",
               "damage_pct": 503.1,
               "daze_pct": 114.1,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Chain Attack",
+              "element": "Ice"
             },
             {
               "hit_id": 1091018,
               "name": "Ultimate: Lingering Snow",
               "damage_pct": 4776.1,
               "daze_pct": 556.3,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Ultimate",
+              "element": "Ice"
             }
           ]
         },
@@ -240,49 +288,63 @@
               "name": "Quick Assist: Dancing Petals",
               "damage_pct": 152.0,
               "daze_pct": 128.5,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Quick Assist",
+              "element": "Ice"
             },
             {
               "hit_id": 1091022,
               "name": "Defensive Assist: Drifting Petals",
               "damage_pct": 0.0,
               "daze_pct": 333.3,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Defensive Assist",
+              "element": "Ice"
             },
             {
               "hit_id": 1091023,
               "name": "Defensive Assist: Drifting Petals",
               "damage_pct": 0.0,
               "daze_pct": 420.8,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Defensive Assist",
+              "element": "Ice"
             },
             {
               "hit_id": 1091024,
               "name": "Defensive Assist: Drifting Petals",
               "damage_pct": 0.0,
               "daze_pct": 157.8,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Defensive Assist",
+              "element": "Ice"
             },
             {
               "hit_id": 1091025,
               "name": "Assist Follow-Up: Falling Petals",
               "damage_pct": 491.8,
               "daze_pct": 358.4,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Assist Follow-Up",
+              "element": "Ice"
             },
             {
               "hit_id": 1091033,
               "name": "hit 1091033",
               "damage_pct": 248.0,
               "daze_pct": 209.5,
-              "is_hidden": true
+              "is_hidden": true,
+              "skill_type": "Assist",
+              "element": "Ice"
             },
             {
               "hit_id": 1091034,
               "name": "hit 1091034",
               "damage_pct": 248.0,
               "daze_pct": 1046.5,
-              "is_hidden": true
+              "is_hidden": true,
+              "skill_type": "Assist",
+              "element": "Ice"
             }
           ]
         }
@@ -335,56 +397,72 @@
               "name": "Basic Attack: Cirrus Strike",
               "damage_pct": 87.8,
               "daze_pct": 41.6,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Basic Attack",
+              "element": "Ether"
             },
             {
               "hit_id": 1371002,
               "name": "Basic Attack: Cirrus Strike",
               "damage_pct": 125.5,
               "daze_pct": 100.9,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Basic Attack",
+              "element": "Ether"
             },
             {
               "hit_id": 1371003,
               "name": "Basic Attack: Cirrus Strike",
               "damage_pct": 167.1,
               "daze_pct": 124.8,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Basic Attack",
+              "element": "Ether"
             },
             {
               "hit_id": 1371004,
               "name": "Basic Attack: Cirrus Strike",
               "damage_pct": 200.8,
               "daze_pct": 162.8,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Basic Attack",
+              "element": "Ether"
             },
             {
               "hit_id": 1371005,
               "name": "Basic Attack: Ink‐Veil Cloud Coalescence",
               "damage_pct": 448.7,
               "daze_pct": 427.4,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Basic Attack",
+              "element": "Ether"
             },
             {
               "hit_id": 1371006,
               "name": "Basic Attack: Cirrus Strike",
               "damage_pct": 217.7,
               "daze_pct": 154.7,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Basic Attack",
+              "element": "Ether"
             },
             {
               "hit_id": 1371007,
               "name": "Basic Attack: Qingming Eruption",
               "damage_pct": 211.6,
               "daze_pct": 155.3,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Basic Attack",
+              "element": "Ether"
             },
             {
               "hit_id": 1371021,
               "name": "Basic Attack: Auric Array",
               "damage_pct": 583.2,
               "daze_pct": 427.4,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Basic Attack",
+              "element": "Ether"
             }
           ]
         },
@@ -397,56 +475,72 @@
               "name": "Special Attack: Shadow-Ignition",
               "damage_pct": 104.9,
               "daze_pct": 98.1,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Special Attack",
+              "element": "Ether"
             },
             {
               "hit_id": 1371009,
               "name": "EX Special Attack: Ink Manifestation",
               "damage_pct": 600.6,
               "daze_pct": 259.8,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "EX Special Attack",
+              "element": "Ether"
             },
             {
               "hit_id": 1371022,
               "name": "EX Special Attack: Cloud-Shaper",
               "damage_pct": 1343.9,
               "daze_pct": 720.9,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "EX Special Attack",
+              "element": "Ether"
             },
             {
               "hit_id": 1371023,
               "name": "EX Special Attack: Ink Manifestation",
               "damage_pct": 741.3,
               "daze_pct": 441.8,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "EX Special Attack",
+              "element": "Ether"
             },
             {
               "hit_id": 1371024,
               "name": "EX Special Attack: Ink Manifestation",
               "damage_pct": 299.2,
               "daze_pct": 114.3,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "EX Special Attack",
+              "element": "Ether"
             },
             {
               "hit_id": 1371025,
               "name": "EX Special Attack: Ink Manifestation",
               "damage_pct": 853.2,
               "daze_pct": 428.3,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "EX Special Attack",
+              "element": "Ether"
             },
             {
               "hit_id": 1371026,
               "name": "EX Special Attack: Ashen Ink Becomes Shadows",
               "damage_pct": 468.6,
               "daze_pct": 213.6,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "EX Special Attack",
+              "element": "Ether"
             },
             {
               "hit_id": 1371027,
               "name": "hit 1371027",
               "damage_pct": 1200.0,
               "daze_pct": 374.1,
-              "is_hidden": true
+              "is_hidden": true,
+              "skill_type": "Special Attack",
+              "element": "Ether"
             }
           ]
         },
@@ -459,21 +553,27 @@
               "name": "Dash Attack: Skybreaker",
               "damage_pct": 86.7,
               "daze_pct": 43.2,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Dash Attack",
+              "element": "Ether"
             },
             {
               "hit_id": 1371011,
               "name": "hit 1371011",
               "damage_pct": 53.2,
               "daze_pct": 52.9,
-              "is_hidden": true
+              "is_hidden": true,
+              "skill_type": "Dodge",
+              "element": "Ether"
             },
             {
               "hit_id": 1371012,
               "name": "Dodge Counter: Banishing Blow",
               "damage_pct": 379.6,
               "daze_pct": 322.9,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Dodge Counter",
+              "element": "Ether"
             }
           ]
         },
@@ -486,21 +586,27 @@
               "name": "Chain Attack: Auric Ink Rush",
               "damage_pct": 1066.6,
               "daze_pct": 341.8,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Chain Attack",
+              "element": "Ether"
             },
             {
               "hit_id": 1371014,
               "name": "Ultimate: Qingming Skyshade",
               "damage_pct": 3706.9,
               "daze_pct": 611.7,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Ultimate",
+              "element": "Ether"
             },
             {
               "hit_id": 1371020,
               "name": "Ultimate: Endless Talisman Suppression",
               "damage_pct": 2932.5,
               "daze_pct": 374.8,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Ultimate",
+              "element": "Ether"
             }
           ]
         },
@@ -513,35 +619,45 @@
               "name": "Quick Assist: Cloudstream Shadow",
               "damage_pct": 184.0,
               "daze_pct": 89.4,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Quick Assist",
+              "element": "Ether"
             },
             {
               "hit_id": 1371016,
               "name": "Defensive Assist: Clear Sky Surge",
               "damage_pct": 0.0,
               "daze_pct": 382.9,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Defensive Assist",
+              "element": "Ether"
             },
             {
               "hit_id": 1371017,
               "name": "Defensive Assist: Clear Sky Surge",
               "damage_pct": 0.0,
               "daze_pct": 483.2,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Defensive Assist",
+              "element": "Ether"
             },
             {
               "hit_id": 1371018,
               "name": "Defensive Assist: Clear Sky Surge",
               "damage_pct": 0.0,
               "daze_pct": 235.2,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Defensive Assist",
+              "element": "Ether"
             },
             {
               "hit_id": 1371019,
               "name": "Assist Follow-Up: Celestial Cloud Blitz",
               "damage_pct": 540.0,
               "daze_pct": 455.2,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Assist Follow-Up",
+              "element": "Ether"
             }
           ]
         }
@@ -550,7 +666,7 @@
     {
       "avatar_id": 1431,
       "name": "Ye Shunguang",
-      "element": "Physics",
+      "element": "Physical",
       "profession": "Attack",
       "level": 60,
       "mindscape": 0,
@@ -594,98 +710,126 @@
               "name": "Basic Attack: Swiftedge",
               "damage_pct": 159.7,
               "daze_pct": 40.8,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Basic Attack",
+              "element": "Physical"
             },
             {
               "hit_id": 1431002,
               "name": "Basic Attack: Swiftedge",
               "damage_pct": 488.3,
               "daze_pct": 117.1,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Basic Attack",
+              "element": "Physical"
             },
             {
               "hit_id": 1431003,
               "name": "Basic Attack: Swiftedge",
               "damage_pct": 250.0,
               "daze_pct": 54.1,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Basic Attack",
+              "element": "Physical"
             },
             {
               "hit_id": 1431004,
               "name": "Basic Attack: Cloudstream Sword Will",
               "damage_pct": 234.4,
               "daze_pct": 55.4,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Basic Attack",
+              "element": "Physical"
             },
             {
               "hit_id": 1431005,
               "name": "Basic Attack: Swiftedge",
               "damage_pct": 736.5,
               "daze_pct": 161.2,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Basic Attack",
+              "element": "Physical"
             },
             {
               "hit_id": 1431006,
               "name": "Basic Attack: Enlightened Mind - Splitting Currents",
               "damage_pct": 225.9,
               "daze_pct": 54.5,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Basic Attack",
+              "element": "Physical"
             },
             {
               "hit_id": 1431007,
               "name": "Basic Attack: Enlightened Mind - Splitting Currents",
               "damage_pct": 312.1,
               "daze_pct": 74.8,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Basic Attack",
+              "element": "Physical"
             },
             {
               "hit_id": 1431008,
               "name": "Basic Attack: Enlightened Mind - Splitting Currents",
               "damage_pct": 433.3,
               "daze_pct": 104.0,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Basic Attack",
+              "element": "Physical"
             },
             {
               "hit_id": 1431009,
               "name": "Basic Attack: Enlightened Mind - Sunderlight Maximum",
               "damage_pct": 1209.8,
               "daze_pct": 115.5,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Basic Attack",
+              "element": "Physical"
             },
             {
               "hit_id": 1431010,
               "name": "Basic Attack: Enlightened Mind - Sunderlight",
               "damage_pct": 241.7,
               "daze_pct": 51.6,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Basic Attack",
+              "element": "Physical"
             },
             {
               "hit_id": 1431011,
               "name": "Basic Attack: Enlightened Mind - Sunderlight",
               "damage_pct": 313.8,
               "daze_pct": 66.0,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Basic Attack",
+              "element": "Physical"
             },
             {
               "hit_id": 1431012,
               "name": "Basic Attack: Enlightened Mind - Sunderlight Annihilation",
               "damage_pct": 320.5,
               "daze_pct": 68.1,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Basic Attack",
+              "element": "Physical"
             },
             {
               "hit_id": 1431013,
               "name": "Basic Attack: Enlightened Mind - Sunderlight Annihilation",
               "damage_pct": 1783.3,
               "daze_pct": 87.5,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Basic Attack",
+              "element": "Physical"
             },
             {
               "hit_id": 1431017,
               "name": "Basic Attack: Enlightened Mind - Skyward Ascent",
               "damage_pct": 182.3,
               "daze_pct": 54.5,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Basic Attack",
+              "element": "Physical"
             }
           ]
         },
@@ -698,42 +842,54 @@
               "name": "Special Attack: Guiding Tides",
               "damage_pct": 188.9,
               "daze_pct": 36.3,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Special Attack",
+              "element": "Physical"
             },
             {
               "hit_id": 1431015,
               "name": "Special Attack: Guiding Tides",
               "damage_pct": 603.9,
               "daze_pct": 193.1,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Special Attack",
+              "element": "Physical"
             },
             {
               "hit_id": 1431016,
               "name": "EX Special Attack: Gale Suppression",
               "damage_pct": 2250.4,
               "daze_pct": 495.1,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "EX Special Attack",
+              "element": "Physical"
             },
             {
               "hit_id": 1431018,
               "name": "EX Special Attack: Enlightened Mind - Soaring Light",
               "damage_pct": 2020.0,
               "daze_pct": 158.2,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "EX Special Attack",
+              "element": "Physical"
             },
             {
               "hit_id": 1431019,
               "name": "EX Special Attack: Enlightened Mind - Return to Dust",
               "damage_pct": 2217.1,
               "daze_pct": 203.4,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "EX Special Attack",
+              "element": "Physical"
             },
             {
               "hit_id": 1431021,
               "name": "Special Attack: Enlightened Mind - Clean Exit",
               "damage_pct": 136.0,
               "daze_pct": 25.5,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Special Attack",
+              "element": "Physical"
             }
           ]
         },
@@ -746,14 +902,18 @@
               "name": "Dash Attack: Phantasm Dash",
               "damage_pct": 172.2,
               "daze_pct": 27.7,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Dash Attack",
+              "element": "Physical"
             },
             {
               "hit_id": 1431022,
               "name": "Dodge Counter: Swallow Strike",
               "damage_pct": 566.8,
               "daze_pct": 155.2,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Dodge Counter",
+              "element": "Physical"
             }
           ]
         },
@@ -766,28 +926,36 @@
               "name": "Chain Attack: Smite the Wicked",
               "damage_pct": 1664.6,
               "daze_pct": 264.5,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Chain Attack",
+              "element": "Physical"
             },
             {
               "hit_id": 1431025,
               "name": "Ultimate: Chasing Storms",
               "damage_pct": 3675.0,
               "daze_pct": 80.0,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Ultimate",
+              "element": "Physical"
             },
             {
               "hit_id": 1431026,
               "name": "Chain Attack: Enlightened Mind - Lure Thunder",
               "damage_pct": 1734.6,
               "daze_pct": 200.5,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Chain Attack",
+              "element": "Physical"
             },
             {
               "hit_id": 1431027,
               "name": "Ultimate: Cleaving Heavens",
               "damage_pct": 5888.3,
               "daze_pct": 220.3,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Ultimate",
+              "element": "Physical"
             }
           ]
         },
@@ -800,63 +968,81 @@
               "name": "Entry Skill: Illuminating Darkness",
               "damage_pct": 691.6,
               "daze_pct": 165.0,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Assist",
+              "element": "Physical"
             },
             {
               "hit_id": 1431029,
               "name": "Quick Assist: Support Guard",
               "damage_pct": 139.7,
               "daze_pct": 43.7,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Quick Assist",
+              "element": "Physical"
             },
             {
               "hit_id": 1431030,
               "name": "Defensive Assist: When I Return",
               "damage_pct": 0.0,
               "daze_pct": 266.5,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Defensive Assist",
+              "element": "Physical"
             },
             {
               "hit_id": 1431031,
               "name": "Defensive Assist: When I Return",
               "damage_pct": 0.0,
               "daze_pct": 283.2,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Defensive Assist",
+              "element": "Physical"
             },
             {
               "hit_id": 1431032,
               "name": "Defensive Assist: When I Return",
               "damage_pct": 0.0,
               "daze_pct": 163.2,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Defensive Assist",
+              "element": "Physical"
             },
             {
               "hit_id": 1431033,
               "name": "Assist Follow-Up: Cease Hostility",
               "damage_pct": 715.3,
               "daze_pct": 191.2,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Assist Follow-Up",
+              "element": "Physical"
             },
             {
               "hit_id": 1431034,
               "name": "Assist Follow-Up: Enlightened Mind - Unification",
               "damage_pct": 742.8,
               "daze_pct": 199.6,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Assist Follow-Up",
+              "element": "Physical"
             },
             {
               "hit_id": 1431035,
               "name": "Quick Assist: Enlightened Mind - Tactical Support",
               "damage_pct": 116.9,
               "daze_pct": 45.9,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Quick Assist",
+              "element": "Physical"
             },
             {
               "hit_id": 1431036,
               "name": "hit 1431036",
               "damage_pct": 1000.0,
               "daze_pct": 0.0,
-              "is_hidden": true
+              "is_hidden": true,
+              "skill_type": "Assist",
+              "element": "Physical"
             }
           ]
         }
@@ -909,49 +1095,63 @@
               "name": "Basic Attack: Leap",
               "damage_pct": 63.1,
               "daze_pct": 18.8,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Basic Attack",
+              "element": "Lumen"
             },
             {
               "hit_id": 1581003,
               "name": "Basic Attack: Leap",
               "damage_pct": 109.5,
               "daze_pct": 42.5,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Basic Attack",
+              "element": "Lumen"
             },
             {
               "hit_id": 1581004,
               "name": "Basic Attack: Leap",
               "damage_pct": 169.0,
               "daze_pct": 74.6,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Basic Attack",
+              "element": "Lumen"
             },
             {
               "hit_id": 1581005,
               "name": "Basic Attack: Leap",
               "damage_pct": 501.6,
               "daze_pct": 190.4,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Basic Attack",
+              "element": "Lumen"
             },
             {
               "hit_id": 1581006,
               "name": "Basic Attack: Solo Dance",
               "damage_pct": 193.3,
               "daze_pct": 123.4,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Basic Attack",
+              "element": "Lumen"
             },
             {
               "hit_id": 1581007,
               "name": "Basic Attack: Rainbow's End",
               "damage_pct": 390.8,
               "daze_pct": 247.5,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Basic Attack",
+              "element": "Lumen"
             },
             {
               "hit_id": 1581008,
               "name": "Basic Attack: Fleeting Grace",
               "damage_pct": 1194.5,
               "daze_pct": 583.4,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Basic Attack",
+              "element": "Lumen"
             }
           ]
         },
@@ -964,56 +1164,72 @@
               "name": "hit 1581001",
               "damage_pct": 1319.2,
               "daze_pct": 0.0,
-              "is_hidden": true
+              "is_hidden": true,
+              "skill_type": "Special Attack",
+              "element": "Lumen"
             },
             {
               "hit_id": 1581009,
               "name": "Special Attack: Sliver of Light",
               "damage_pct": 91.3,
               "daze_pct": 60.2,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Special Attack",
+              "element": "Lumen"
             },
             {
               "hit_id": 1581010,
               "name": "Special Attack: Ode to Dawn - Radiant Turn",
               "damage_pct": 299.7,
               "daze_pct": 98.5,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Special Attack",
+              "element": "Lumen"
             },
             {
               "hit_id": 1581011,
               "name": "EX Special Attack: Ode to Dawn",
               "damage_pct": 1311.9,
               "daze_pct": 399.4,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "EX Special Attack",
+              "element": "Lumen"
             },
             {
               "hit_id": 1581022,
               "name": "hit 1581022",
               "damage_pct": 147.9,
               "daze_pct": 387.5,
-              "is_hidden": true
+              "is_hidden": true,
+              "skill_type": "Special Attack",
+              "element": "Lumen"
             },
             {
               "hit_id": 1581023,
               "name": "hit 1581023",
               "damage_pct": 369.7,
               "daze_pct": 533.0,
-              "is_hidden": true
+              "is_hidden": true,
+              "skill_type": "Special Attack",
+              "element": "Lumen"
             },
             {
               "hit_id": 1581024,
               "name": "hit 1581024",
               "damage_pct": 295.7,
               "daze_pct": 533.0,
-              "is_hidden": true
+              "is_hidden": true,
+              "skill_type": "Special Attack",
+              "element": "Lumen"
             },
             {
               "hit_id": 1581025,
               "name": "hit 1581025",
               "damage_pct": 1329.8,
               "daze_pct": 0.0,
-              "is_hidden": true
+              "is_hidden": true,
+              "skill_type": "Special Attack",
+              "element": "Lumen"
             }
           ]
         },
@@ -1026,14 +1242,18 @@
               "name": "Dash Attack: Keen Light",
               "damage_pct": 57.0,
               "daze_pct": 40.5,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Dash Attack",
+              "element": "Lumen"
             },
             {
               "hit_id": 1581013,
               "name": "Dodge Counter: Mirrored Shadow",
               "damage_pct": 312.0,
               "daze_pct": 202.5,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Dodge Counter",
+              "element": "Lumen"
             }
           ]
         },
@@ -1046,14 +1266,18 @@
               "name": "Chain Attack: Interwoven Dance Steps",
               "damage_pct": 1570.6,
               "daze_pct": 338.8,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Chain Attack",
+              "element": "Lumen"
             },
             {
               "hit_id": 1581016,
               "name": "Ultimate: Dazzling Curtain Call",
               "damage_pct": 4019.4,
               "daze_pct": 391.3,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Ultimate",
+              "element": "Lumen"
             }
           ]
         },
@@ -1066,42 +1290,54 @@
               "name": "Assist: Flower & Feather Dance",
               "damage_pct": 660.0,
               "daze_pct": 362.7,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Assist",
+              "element": "Lumen"
             },
             {
               "hit_id": 1581017,
               "name": "Quick Assist: Featherglow Rebirth",
               "damage_pct": 47.5,
               "daze_pct": 34.0,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Quick Assist",
+              "element": "Lumen"
             },
             {
               "hit_id": 1581018,
               "name": "Defensive Assist: Fleeting Light",
               "damage_pct": 0.0,
               "daze_pct": 333.3,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Defensive Assist",
+              "element": "Lumen"
             },
             {
               "hit_id": 1581019,
               "name": "Defensive Assist: Fleeting Light",
               "damage_pct": 0.0,
               "daze_pct": 420.8,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Defensive Assist",
+              "element": "Lumen"
             },
             {
               "hit_id": 1581020,
               "name": "Defensive Assist: Fleeting Light",
               "damage_pct": 0.0,
               "daze_pct": 204.8,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Defensive Assist",
+              "element": "Lumen"
             },
             {
               "hit_id": 1581021,
               "name": "Assist Follow-Up: Awakening Glimmer",
               "damage_pct": 554.6,
               "daze_pct": 341.1,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Assist Follow-Up",
+              "element": "Lumen"
             }
           ]
         }
@@ -1110,7 +1346,7 @@
     {
       "avatar_id": 1421,
       "name": "Pan Yinhu",
-      "element": "Physics",
+      "element": "Physical",
       "profession": "Defense",
       "level": 60,
       "mindscape": 6,
@@ -1154,28 +1390,36 @@
               "name": "Basic Attack: Unyielding Strikes",
               "damage_pct": 91.1,
               "daze_pct": 35.7,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Basic Attack",
+              "element": "Physical"
             },
             {
               "hit_id": 1421002,
               "name": "Basic Attack: Unyielding Strikes",
               "damage_pct": 91.2,
               "daze_pct": 67.3,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Basic Attack",
+              "element": "Physical"
             },
             {
               "hit_id": 1421003,
               "name": "Basic Attack: Unyielding Strikes",
               "damage_pct": 199.4,
               "daze_pct": 119.4,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Basic Attack",
+              "element": "Physical"
             },
             {
               "hit_id": 1421004,
               "name": "Basic Attack: Unyielding Strikes",
               "damage_pct": 385.0,
               "daze_pct": 234.9,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Basic Attack",
+              "element": "Physical"
             }
           ]
         },
@@ -1188,35 +1432,45 @@
               "name": "Special Attack: Sonic Pressure-Point Strike",
               "damage_pct": 142.3,
               "daze_pct": 103.1,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Special Attack",
+              "element": "Physical"
             },
             {
               "hit_id": 1421006,
               "name": "EX Special Attack: Mountainous Pulse Strike",
               "damage_pct": 874.1,
               "daze_pct": 421.1,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "EX Special Attack",
+              "element": "Physical"
             },
             {
               "hit_id": 1421007,
               "name": "Special Attack: Touch of Death",
               "damage_pct": 221.9,
               "daze_pct": 68.3,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Special Attack",
+              "element": "Physical"
             },
             {
               "hit_id": 1421008,
               "name": "Special Attack: Touch of Death",
               "damage_pct": 221.9,
               "daze_pct": 68.3,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Special Attack",
+              "element": "Physical"
             },
             {
               "hit_id": 1421009,
               "name": "Special Attack: Touch of Death",
               "damage_pct": 221.9,
               "daze_pct": 68.3,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Special Attack",
+              "element": "Physical"
             }
           ]
         },
@@ -1229,14 +1483,18 @@
               "name": "Dash Attack: Sizzling Oil Supreme",
               "damage_pct": 151.8,
               "daze_pct": 58.8,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Dash Attack",
+              "element": "Physical"
             },
             {
               "hit_id": 1421011,
               "name": "Dodge Counter: Moving Mountains and Seas",
               "damage_pct": 399.2,
               "daze_pct": 270.9,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Dodge Counter",
+              "element": "Physical"
             }
           ]
         },
@@ -1249,14 +1507,18 @@
               "name": "Chain Attack: Anointed with Wok Steam",
               "damage_pct": 1494.8,
               "daze_pct": 393.8,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Chain Attack",
+              "element": "Physical"
             },
             {
               "hit_id": 1421013,
               "name": "Ultimate: A Feast Fit for an Emperor!",
               "damage_pct": 3847.9,
               "daze_pct": 165.9,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Ultimate",
+              "element": "Physical"
             }
           ]
         },
@@ -1269,35 +1531,45 @@
               "name": "Quick Assist: Lift Your Gaze to Good Fortune",
               "damage_pct": 167.3,
               "daze_pct": 64.8,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Quick Assist",
+              "element": "Physical"
             },
             {
               "hit_id": 1421015,
               "name": "Defensive Assist: Intimidating Presence",
               "damage_pct": 0.0,
               "daze_pct": 317.8,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Defensive Assist",
+              "element": "Physical"
             },
             {
               "hit_id": 1421016,
               "name": "Defensive Assist: Intimidating Presence",
               "damage_pct": 0.0,
               "daze_pct": 378.2,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Defensive Assist",
+              "element": "Physical"
             },
             {
               "hit_id": 1421017,
               "name": "Defensive Assist: Intimidating Presence",
               "damage_pct": 0.0,
               "daze_pct": 153.4,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Defensive Assist",
+              "element": "Physical"
             },
             {
               "hit_id": 1421018,
               "name": "Assist Follow-Up: Ride the Momentum",
               "damage_pct": 613.7,
               "daze_pct": 414.1,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Assist Follow-Up",
+              "element": "Physical"
             }
           ]
         }
@@ -1350,84 +1622,108 @@
               "name": "Basic Attack: Warmup Sparks",
               "damage_pct": 34.4,
               "daze_pct": 17.2,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Basic Attack",
+              "element": "Physical"
             },
             {
               "hit_id": 1041002,
               "name": "Basic Attack: Fire Suppression",
               "damage_pct": 55.1,
               "daze_pct": 18.0,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Basic Attack",
+              "element": "Fire"
             },
             {
               "hit_id": 1041003,
               "name": "Basic Attack: Warmup Sparks",
               "damage_pct": 41.2,
               "daze_pct": 34.4,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Basic Attack",
+              "element": "Physical"
             },
             {
               "hit_id": 1041004,
               "name": "Basic Attack: Fire Suppression",
               "damage_pct": 57.2,
               "daze_pct": 33.6,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Basic Attack",
+              "element": "Fire"
             },
             {
               "hit_id": 1041005,
               "name": "Basic Attack: Warmup Sparks",
               "damage_pct": 102.8,
               "daze_pct": 82.3,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Basic Attack",
+              "element": "Physical"
             },
             {
               "hit_id": 1041006,
               "name": "Basic Attack: Fire Suppression",
               "damage_pct": 132.0,
               "daze_pct": 75.2,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Basic Attack",
+              "element": "Fire"
             },
             {
               "hit_id": 1041007,
               "name": "Basic Attack: Warmup Sparks",
               "damage_pct": 213.4,
               "daze_pct": 167.6,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Basic Attack",
+              "element": "Physical"
             },
             {
               "hit_id": 1041008,
               "name": "Basic Attack: Fire Suppression",
               "damage_pct": 340.7,
               "daze_pct": 192.0,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Basic Attack",
+              "element": "Fire"
             },
             {
               "hit_id": 1041024,
               "name": "Basic Attack: Fire Suppression",
               "damage_pct": 441.7,
               "daze_pct": 145.3,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Basic Attack",
+              "element": "Fire"
             },
             {
               "hit_id": 1041025,
               "name": "Basic Attack: Fire Suppression",
               "damage_pct": 441.7,
               "daze_pct": 145.3,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Basic Attack",
+              "element": "Fire"
             },
             {
               "hit_id": 1041026,
               "name": "Basic Attack: Fire Suppression",
               "damage_pct": 82.8,
               "daze_pct": 0.0,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Basic Attack",
+              "element": "Fire"
             },
             {
               "hit_id": 1041027,
               "name": "Basic Attack: Fire Suppression",
               "damage_pct": 94.1,
               "daze_pct": 30.7,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Basic Attack",
+              "element": "Fire"
             }
           ]
         },
@@ -1440,21 +1736,27 @@
               "name": "hit 1041009",
               "damage_pct": 92.8,
               "daze_pct": 92.8,
-              "is_hidden": true
+              "is_hidden": true,
+              "skill_type": "Special Attack",
+              "element": "Fire"
             },
             {
               "hit_id": 1041010,
               "name": "Special Attack: Raging Fire",
               "damage_pct": 52.6,
               "daze_pct": 52.6,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Special Attack",
+              "element": "Fire"
             },
             {
               "hit_id": 1041011,
               "name": "EX Special Attack: Fervent Fire",
               "damage_pct": 675.0,
               "daze_pct": 543.5,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "EX Special Attack",
+              "element": "Fire"
             }
           ]
         },
@@ -1467,21 +1769,27 @@
               "name": "Dash Attack: Blazing Fire",
               "damage_pct": 74.6,
               "daze_pct": 35.8,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Dash Attack",
+              "element": "Physical"
             },
             {
               "hit_id": 1041013,
               "name": "Dash Attack: Fire Suppression",
               "damage_pct": 86.0,
               "daze_pct": 82.4,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Dash Attack",
+              "element": "Fire"
             },
             {
               "hit_id": 1041015,
               "name": "Dodge Counter: Backdraft",
               "damage_pct": 285.9,
               "daze_pct": 236.1,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Dodge Counter",
+              "element": "Fire"
             }
           ]
         },
@@ -1494,14 +1802,18 @@
               "name": "Chain Attack: Uplifting Flame",
               "damage_pct": 632.5,
               "daze_pct": 213.6,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Chain Attack",
+              "element": "Fire"
             },
             {
               "hit_id": 1041017,
               "name": "Ultimate: Bellowing Flame",
               "damage_pct": 2103.0,
               "daze_pct": 285.0,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Ultimate",
+              "element": "Fire"
             }
           ]
         },
@@ -1514,35 +1826,45 @@
               "name": "Quick Assist: Covering Fire",
               "damage_pct": 142.8,
               "daze_pct": 131.8,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Quick Assist",
+              "element": "Fire"
             },
             {
               "hit_id": 1041020,
               "name": "Defensive Assist: Hold the Line",
               "damage_pct": 0.0,
               "daze_pct": 282.6,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Defensive Assist",
+              "element": "Fire"
             },
             {
               "hit_id": 1041021,
               "name": "Defensive Assist: Hold the Line",
               "damage_pct": 0.0,
               "daze_pct": 357.1,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Defensive Assist",
+              "element": "Fire"
             },
             {
               "hit_id": 1041022,
               "name": "Defensive Assist: Hold the Line",
               "damage_pct": 0.0,
               "daze_pct": 173.9,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Defensive Assist",
+              "element": "Fire"
             },
             {
               "hit_id": 1041023,
               "name": "Assist Follow-Up: Reignition",
               "damage_pct": 453.5,
               "daze_pct": 366.1,
-              "is_hidden": false
+              "is_hidden": false,
+              "skill_type": "Assist Follow-Up",
+              "element": "Fire"
             }
           ]
         }

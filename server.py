@@ -197,55 +197,31 @@ def calculate_avatar(api_showcase: dict, avatar_id: int, enemy_name: str,
 
 # re-implement compute_all_damage (run.py) supaya server gak import run.py
 # (run.py punya arg parsing side-effect minimal, tapi lebih bersih standalone)
+# Versi lama diduplikasi bug run.py (tanpa CR/elemen per-hit); sekarang
+# delegasi ke damage_calc.compute_all_damage shared.
 _last_toggles = []
 
 
 def compute_all_damage_standalone(snapshot: dict, enemy, stunned: bool = False) -> list:
     ctx = build_calc_context()
     dc = ctx["dc"]
-    stats = snapshot["stats"]
-    weapon = snapshot["weapon"]
-
-    toggles = []
-    if weapon.get("id"):
-        toggles += dc.build_wengine_toggles(ctx["wengines"], weapon_id=weapon["id"],
-                                            phase=weapon.get("phase", 1))
-    for set_name in snapshot.get("set4pc", []):
-        toggles += dc.build_set4pc_toggles(ctx["sets"], set_name=set_name)
-    toggles += dc.build_mindscape_toggles(ctx["mindscapes"], avatar_id=snapshot["avatar_id"],
-                                           mindscape_rank=snapshot.get("mindscape", 0))
-    dc.evaluate_thresholds(toggles, panel=stats)
-
+    rows, toggles = dc.compute_all_damage(
+        snapshot, enemy, ctx["wengines"], ctx["sets"], ctx["mindscapes"],
+        enemy_stunned=stunned,
+    )
     _last_toggles.clear()
     _last_toggles.extend(toggles)
-
-    results = []
-    for skill_idx, skill_data in snapshot.get("skills", {}).items():
-        mods = dc.aggregate_modifiers(toggles, skill_type=skill_data["label"])
-        for hit in skill_data["hits"]:
-            if hit["is_hidden"]:
-                continue
-            r = dc.compute_final_damage(
-                atk_panel=stats["ATK"],
-                skill_mult_pct=hit["damage_pct"],
-                crit_dmg_panel_pct=stats.get("CRIT DMG", 0.0),
-                enemy=enemy,
-                element=snapshot.get("element", "Physical"),
-                pen_ratio_pct=stats.get("PEN Ratio", 0.0),
-                pen_flat=stats.get("PEN", 0.0),
-                mods=mods,
-                enemy_stunned=stunned,
-            )
-            results.append({
-                "skill": skill_data["label"],
-                "hit": hit["name"],
-                "damage_pct": hit["damage_pct"],
-                "daze_pct": hit.get("daze_pct", 0.0),
-                "non_crit": r["non_crit"],
-                "crit": r["crit"],
-                "stun_non_crit": r["non_crit"] * (1 + enemy.stun_taken_pct),
-            })
-    return results
+    return [{
+        "skill": r["skill_label"],
+        "hit": r["hit_name"],
+        "element": r["hit_element"],
+        "damage_pct": r["damage_pct"],
+        "daze_pct": r.get("daze_pct", 0.0),
+        "non_crit": r["non_crit"],
+        "crit": r["crit"],
+        "expected": r.get("expected"),
+        "stun_non_crit": r["non_crit"] * (1 + enemy.stun_taken_pct),
+    } for r in rows]
 
 
 def build_monster_list() -> list:

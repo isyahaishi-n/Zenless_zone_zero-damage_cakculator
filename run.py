@@ -101,52 +101,20 @@ def get_enemy_stats(enemy_key: str, level: int = 60) -> dc.EnemyStats:
 
 # ---------------------------------------------------------------------------
 # 3. Gabungin stat panel + toggle -> damage per skill
+# (implementasi shared di damage_calc.compute_all_damage — run.py cuma
+#  delegasi supaya bugfix formula/args cukup sekali di satu tempat)
 # ---------------------------------------------------------------------------
 
 def compute_all_damage(snapshot: dict, enemy: dc.EnemyStats,
-                        wengines: dict, sets: dict, mindscapes: dict,
-                        enemy_stunned: bool = False) -> list:
+                       wengines: dict, sets: dict, mindscapes: dict,
+                       enemy_stunned: bool = False) -> list:
     """Untuk satu avatar snapshot (dari compute_avatar_snapshot), hitung
     damage tiap hit non-hidden di semua skill, pakai toggle conditional
     yang otomatis ke-enable (unconditional + threshold yang lolos).
     """
-    stats = snapshot["stats"]
-    weapon = snapshot["weapon"]
-
-    toggles = []
-    if weapon.get("id"):
-        toggles += dc.build_wengine_toggles(wengines, weapon_id=weapon["id"], phase=weapon.get("phase", 1))
-    for set_name in snapshot.get("set4pc", []):
-        toggles += dc.build_set4pc_toggles(sets, set_name=set_name)
-    toggles += dc.build_mindscape_toggles(mindscapes, avatar_id=snapshot["avatar_id"],
-                                           mindscape_rank=snapshot.get("mindscape", 0))
-    dc.evaluate_thresholds(toggles, panel=stats)  # mutates toggles in-place (t.enabled)
-
-    results = []
-    for skill_idx, skill_data in snapshot.get("skills", {}).items():
-        mods = dc.aggregate_modifiers(toggles, skill_type=skill_data["label"])
-        for hit in skill_data["hits"]:
-            if hit["is_hidden"]:
-                continue
-            r = dc.compute_final_damage(
-                atk_panel=stats["ATK"],
-                skill_mult_pct=hit["damage_pct"],
-                crit_dmg_panel_pct=stats.get("CRIT DMG", 0.0),
-                enemy=enemy,
-                element=snapshot.get("element", "Physical"),
-                pen_ratio_pct=stats.get("PEN Ratio", 0.0),
-                pen_flat=stats.get("PEN", 0.0),
-                mods=mods,
-                enemy_stunned=enemy_stunned,
-            )
-            results.append({
-                "skill_label": skill_data["label"],
-                "hit_name": hit["name"],
-                "damage_pct": hit["damage_pct"],
-                "daze_pct": hit.get("daze_pct", 0.0),
-                "non_crit": r["non_crit"],
-                "crit": r["crit"],
-            })
+    results, _toggles = dc.compute_all_damage(
+        snapshot, enemy, wengines, sets, mindscapes,
+        enemy_stunned=enemy_stunned)
     return results
 
 
@@ -156,7 +124,10 @@ def compute_all_damage(snapshot: dict, enemy: dc.EnemyStats,
 
 def main():
     parser = argparse.ArgumentParser(description="UID -> stat panel -> damage per skill")
-    parser.add_argument("uid", help="UID Enka")
+    parser.add_argument("uid", help="UID Enka (atau path profile JSON lokal dengan --profile)")
+    parser.add_argument("--profile", action="store_true",
+                        help="Argumen uid = path file JSON profile Enka lokal "
+                             "(mis. dumps/1303558818.json), tanpa fetch.")
     parser.add_argument("--enemy", default="Tyrfing",
                         help="Nama musuh dari data Monster (default: Tyrfing). "
                              "Case-insensitive, mis. 'Haytor', 'The Defector'.")
@@ -179,10 +150,16 @@ def main():
             print(f"  {n}")
         return
 
-    print(f"[1] Fetching UID {args.uid} dari Enka...")
+    print(f"[1] {'Load profile lokal' if args.profile else 'Fetching UID ' + args.uid + ' dari Enka'}...")
     try:
-        api = fetch_player_data(args.uid)
-    except RuntimeError as e:
+        if args.profile:
+            p = Path(args.uid)
+            if not p.is_absolute():
+                p = base_dir / p
+            api = json.loads(p.read_text(encoding="utf-8"))
+        else:
+            api = fetch_player_data(args.uid)
+    except (RuntimeError, FileNotFoundError) as e:
         sys.exit(f"Error: {e}")
     showcase = api["PlayerInfo"]["ShowcaseDetail"]
     avatars_list = showcase.get("AvatarList", [])
@@ -248,9 +225,10 @@ def main():
                 print(f"    {r['skill_label']:20s} {r['hit_name']:35s} "
                       f"(daze-only)  daze {r['daze_pct']:7.1f}%")
             else:
-                print(f"    {r['skill_label']:20s} {r['hit_name']:35s} "
+                elem = r.get("hit_element") or snapshot.get("element", "?")
+                print(f"    {r['skill_label']:20s} {r['hit_name']:35s} [{elem:8s}]"
                       f"{r['damage_pct']:7.1f}%  ->  non-crit {r['non_crit']:8.1f}  "
-                      f"crit {r['crit']:8.1f}")
+                      f"crit {r['crit']:8.1f}  exp {r.get('expected', r['non_crit']):8.1f}")
 
 
 if __name__ == "__main__":

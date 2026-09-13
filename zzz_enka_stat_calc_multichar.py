@@ -12,10 +12,14 @@ from typing import Any
 
 from skill_lookup import (
     build_explicit_name_map,
+    build_skill_element_map,
     build_skill_index,
     compute_damage_output,
+    element_of_hit,
     load_skill_template,
     load_textmap,
+    normalize_element,
+    skill_type_of_hit,
 )
 
 PROP_ID_TO_NAME: dict[int, str] = {
@@ -127,6 +131,20 @@ def effective_skill_level(base_level: int, mindscape: int) -> int:
         bump += 2
     return base_level + bump
 CORE_SKILL_LETTERS = ["-", "A", "B", "C", "D", "E", "F"]
+
+# Lazy cache: rows SkillListConfigTemplateTb (elemen damage per sub-skill
+# untuk atribusi elemen per hit — OGIJGDFBEAD 200-205/300, judul UI =
+# nama sub-skill).
+SKILL_LIST_ROWS: list | None = None
+
+
+def _get_skill_list_rows() -> list:
+    global SKILL_LIST_ROWS
+    if SKILL_LIST_ROWS is None:
+        base_dir = Path(__file__).resolve().parent
+        data = load_json(base_dir / "data" / "SkillListConfigTemplateTb.json")
+        SKILL_LIST_ROWS = data.get("MLOEFHJHCID", [])
+    return SKILL_LIST_ROWS
 
 RANK_LETTERS = {2: "B", 3: "A", 4: "S"}
 
@@ -556,7 +574,15 @@ def compute_avatar_snapshot(
     ]
 
     # Skill hits: per skill index yang punya multiplier, level efektif (M3/M5 bump).
+    # Elemen per hit dinilai dari SkillListConfigTemplateTb (judul UI menyebut
+    # elemen damage per sub-skill, mis. Kazahana hit-1/2 Physical, hit-3+ Ice).
     levels = {int(s["Index"]): int(s["Level"]) for s in avatar.get("SkillLevelList", [])}
+    agent_element = normalize_element((excel.get("ElementTypes") or ["Physical"])[-1])
+    skill_list_rows = [
+        r for r in _get_skill_list_rows()
+        if r.get("PJABHBNCJOI") == avatar_id
+    ]
+    hit_element_map = build_skill_element_map(skill_list_rows, textmap)
     skills = {}
     for idx in MULTIPLIER_SKILL_INDICES:
         base_lvl = levels.get(idx)
@@ -569,25 +595,37 @@ def compute_avatar_snapshot(
         )
         if not rows:
             continue
+        skill_label = SKILL_INDEX_TO_NAME.get(idx, f"Skill {idx}")
+        hits = []
+        seq_counters: defaultdict[str, int] = defaultdict(int)
+        for r in rows:
+            name = r["name"] or f"hit {r['hit_id']}"
+            # index sekuens: hit bernama sama berurutan (Kazahana 1..5)
+            seq_key = name.split(" (hit ")[0]
+            seq_idx = seq_counters[seq_key]
+            seq_counters[seq_key] += 1
+            hits.append({
+                "hit_id": r["hit_id"],
+                "name": name,
+                "damage_pct": r["damage_pct"],
+                "daze_pct": r["daze_pct"],
+                "is_hidden": r["is_hidden"],
+                # skill type granular utk scope toggle ('Dash Attack' vs 'Dodge')
+                "skill_type": skill_type_of_hit(r["name"], skill_label),
+                # elemen per-hit (fallback = elemen karakter utk hit unknown)
+                "element": element_of_hit(r["name"], hit_element_map, seq_idx,
+                                           agent_element),
+            })
         skills[str(idx)] = {
-            "label": SKILL_INDEX_TO_NAME.get(idx, f"Skill {idx}"),
+            "label": skill_label,
             "level": eff_lvl,
-            "hits": [
-                {
-                    "hit_id": r["hit_id"],
-                    "name": r["name"] or f"hit {r['hit_id']}",
-                    "damage_pct": r["damage_pct"],
-                    "daze_pct": r["daze_pct"],
-                    "is_hidden": r["is_hidden"],
-                }
-                for r in rows
-            ],
+            "hits": hits,
         }
 
     return {
         "avatar_id": avatar_id,
         "name": localize(loc, excel.get("Name"), str(avatar_id)),
-        "element": (excel.get("ElementTypes") or ["?"])[-1],
+        "element": agent_element,
         "profession": excel.get("ProfessionType", "?"),
         "level": int(avatar["Level"]),
         "mindscape": mindscape,

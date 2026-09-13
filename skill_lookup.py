@@ -74,6 +74,165 @@ def compute_daze(row: dict, level: int) -> float:
     return (base + (level - 1) * growth) / 100
 
 
+# Elemen damage per sub-skill dari SkillListConfigTemplateTb (OGIJGDFBEAD).
+# 0 = tanpa damage (daze-only, mis. Defensive Assist parry).
+SKILL_LIST_ELEMENT_FIELD = "OGIJGDFBEAD"
+SKILL_LIST_ELEMENT_NAMES = {
+    200: "Physical", 201: "Fire", 202: "Ice", 203: "Electric",
+    204: "Wind", 205: "Ether", 300: "Lumen", 0: None,
+}
+
+
+def build_skill_element_map(skill_list_rows: list, textmap: dict = None) -> dict:
+    """Dua map elemen per sub-skill, dinilai dari judul row UI
+    SkillListConfigTemplateTb (judul = nama sub-skill persis seperti nama
+    hit dari AvatarSkillDesTemplateTb):
+
+    return (exact, base):
+      exact["Basic Attack: Kazahana (1st and 2nd hit)"] = "Physical"
+      base ["Basic Attack: Kazahana"] = elemen hit PERTAMA yang disebut
+        annotation ("1st and 2nd hit" -> hit-1) — dipakai ketika nama hit
+        tidak memuat annotation (data AvatarSkillDes memang polos).
+
+    Diverifikasi GT docs/wengine.md: Kazahana hit-1 Miyabi = Physical
+    (row UI 1091001 elem 200); hit 3+ = Ice (row 1091002 elem 202).
+
+    Kalau textmap None, map kosong (caller fallback ke elemen karakter).
+    """
+    if textmap is None:
+        return {}, {}
+    exact, base = {}, {}
+    for r in skill_list_rows:
+        elem = SKILL_LIST_ELEMENT_NAMES.get(r.get(SKILL_LIST_ELEMENT_FIELD))
+        if elem is None:
+            continue
+        title = resolve_title(r.get("CLHJEHADMKO") or "", textmap).strip()
+        if not title:
+            continue
+        exact[title] = elem
+        stripped, first, last = _strip_hit_annotation(title)
+        if stripped:
+            key = (stripped, first, last)
+            # simpan rentang per nama dasar; multiple row = multiple rentang
+            base.setdefault(stripped, []).append((first, last, elem))
+    return exact, base
+
+
+_NUM_WORDS = {
+    "1st": 0, "2nd": 1, "3rd": 2, "4th": 3, "5th": 4, "6th": 5,
+    "7th": 6, "8th": 7, "9th": 8,
+}
+
+
+def _strip_hit_annotation(title: str):
+    """Parse anotasi hit di judul UI -> (base, first_idx0, last_idx0).
+    'Basic Attack: Kazahana (1st and 2nd hit)' -> ('Basic Attack: Kazahana', 0, 1)
+    'Basic Attack: Shimotsuki' -> ('Basic Attack: Shimotsuki', None, None)
+    """
+    m = re.match(r"^(.*?)\s*\(([^)]*?)\s*hit(?:s)?\)\s*$", title, re.IGNORECASE)
+    if not m:
+        return title.strip(), None, None
+    base = m.group(1).strip()
+    nums = re.findall(r"(\d+)(?:st|nd|rd|th)?", m.group(2), re.IGNORECASE)
+    if not nums:
+        return base, None, None
+    idx = [_NUM_WORDS.get(f"{n}{'st' if n == '1' else 'nd' if n == '2' else 'rd' if n == '3' else 'th'}",
+                          int(n) - 1) for n in nums]
+    return base, idx[0], idx[-1]
+
+
+# Normalisasi nama elemen internal game (ElementTypes avatars.json /
+# SkillListConfig) ke nama kanonik yang dipakai stat panel ("Ice DMG"),
+# monster RES (monster_data.ELEMENTS), dan scope toggle mapped files.
+CANONICAL_ELEMENTS = ("Physical", "Fire", "Ice", "Electric", "Ether", "Wind", "Lumen")
+ELEMENT_ALIASES = {
+    "Elec": "Electric",
+    "Electric": "Electric",
+    "Physics": "Physical",
+    "Physical": "Physical",
+    "Fire": "Fire",
+    "Ice": "Ice",
+    "Ether": "Ether",
+    "Wind": "Wind",
+    "Lumen": "Lumen",
+    # Elemen komposit: karakter memakai varian yang dianggap sebagai elemen dasar
+    # (Miyabi "FireFrost" -> Ice, Yixuan "AuricEther" -> Ether).
+    "FireFrost": "Ice",
+    "AuricEther": "Ether",
+}
+
+
+def normalize_element(raw: str) -> str:
+    """'Elec' -> 'Electric', 'Physics' -> 'Physical', 'FireFrost' -> 'Ice',
+    dst. Input tidak dikenal dikembalikan apa adanya (caller bertanggung
+    jawab memberi fallback, mis. 'Physical')."""
+    if not raw:
+        return "Physical"
+    return ELEMENT_ALIASES.get(raw, raw)
+
+
+# Klasifikasi granular per-hit dari prefix nama hit (nama explicit dari
+# AvatarSkillDes). SkillType gabungan (Dodge = Dash + Counter, Assist =
+# Quick/Defensive/Follow-Up) dipecah supaya scope toggle mapped files
+# ('Dash Attack', 'Dodge Counter', 'Quick Assist', ...) bisa match per hit.
+HIT_NAME_PREFIX_TO_SKILL_TYPE = (
+    ("Dash Attack", "Dash Attack"),
+    ("Dodge Counter", "Dodge Counter"),
+    ("Quick Assist", "Quick Assist"),
+    ("Defensive Assist", "Defensive Assist"),
+    ("Assist Follow-Up", "Assist Follow-Up"),
+    ("Chain Attack", "Chain Attack"),
+    ("Ultimate", "Ultimate"),
+    ("EX Special Attack", "EX Special Attack"),
+    ("Special Attack", "Special Attack"),
+    ("Basic Attack", "Basic Attack"),
+)
+
+
+def skill_type_of_hit(hit_name: str, fallback: str) -> str:
+    """Label skill-type granular untuk satu hit, dari prefix nama hit.
+    Fallback = label skill-type gabungan (mis. 'Dodge'). Nama hit None
+    (hidden) atau tanpa prefix dikenal -> fallback."""
+    if not hit_name:
+        return fallback
+    for prefix, label in HIT_NAME_PREFIX_TO_SKILL_TYPE:
+        if hit_name.startswith(prefix):
+            return label
+    return fallback
+
+
+def element_of_hit(hit_name: str, hit_element_map: tuple, hit_seq_index: int,
+                   fallback: str) -> str:
+    """Elemen satu hit dari (exact, ranges) hasil build_skill_element_map.
+
+    `hit_seq_index` = index hit (0-based) dalam sekuens hit bernama sama
+    (nama 'Basic Attack: Kazahana' dipakai beberapa hit berurutan; UI
+    menyebut rentang '1st and 2nd hit' = Physical, '3rd, 4th, and 5th
+    hit' = Ice -- GT docs/wengine.md: D1 1086 & D2 1183 Physical).
+
+    Urutan resolusi: judul exact > rentang yang memuat index > fallback
+    (elemen karakter). Konservatif: hit di luar rentang yang diketahui
+    tidak dikarang elemennya.
+    """
+    if not hit_name or not hit_element_map:
+        return fallback
+    exact, ranges = hit_element_map
+    if hit_name in exact:
+        return exact[hit_name]
+    base = hit_name
+    seq_idx = hit_seq_index
+    m = re.match(r"^(.*?)\s*\(hit (\d+)/(\d+)\)$", hit_name)
+    if m:
+        base = m.group(1)
+        seq_idx = int(m.group(2)) - 1
+    for first, last, elem in ranges.get(base, ()):
+        if first is None:
+            return elem
+        if first <= seq_idx <= last:
+            return elem
+    return fallback
+
+
 def get_skill_multipliers(index: dict, avatar_id: int, skill_type: int, level: int) -> list:
     """Returns a list of {hit_id, damage_pct, daze_pct} for every hit row
     under this avatar's skill_type, at the given level.
