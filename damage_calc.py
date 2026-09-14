@@ -27,20 +27,27 @@ Pipeline (lihat docs/TODO_agent.md):
   4. aggregate_modifiers() gabungin semua yang enabled -> CombatModifiers.
   5. compute_final_damage() — formula tervalidasi (DEFmult/RESmult/CRIT).
 
-Formula (wiki ZZZ Damage page + docs/wengine.md, tervalidasi manual 99.9%):
+Formula (wiki ZZZ Damage page + docs/wengine.md, tervalidasi manual 99.9%;
+ordering DEF/RES disamakan ke okMuzzy v3.1.0 — additive, lihat
+compute_def_mult/compute_res_mult):
     ATK_combat = ATK_panel * (1 + Bonus%_cond) + Flat_cond
-    DEF_eff    = DEF_enemy * (1 - PENratio%) * Π(1 - DEFignore_i%) - PEN_flat
+    DEF_eff    = (DEF_enemy*(1+DEFInc%−ΣShred%−ΣIgnore%) * (1−PENratio%)) − PEN_flat
     DEFmult    = LevelFactor(attacker_level) / (max(DEF_eff, 0) + LevelFactor(attacker_level))
-    RESmult    = 1 - (RES * Π(1 - RESignore_i%) - RESshred%)
+    RESmult    = 1 − (RES − ΣRESignore% − RESshred%)
     NonCrit    = ATK_combat * skill_mult% * (1 + DMG%_bonus) * DEFmult * RESmult
     Crit       = NonCrit * (1 + CRIT_DMG_combat%)
 
-Asumsi stacking multi-sumber (belum ada ground truth; kalibrasi existing
-single-source jadi nggak terpengaruh):
-  - DEF ignore dari beberapa sumber independent di-chain multiplikatif
-    (1-x%) per sumber, mirip mekanik ignore-DEF Genshin.
-  - RES ignore multiplikatif di atas RES enemy; RES shred dikurang flat
-    (persen poin) SETELAH ignore.
+Asumsi stacking multi-sumber (kalibrasi existing tetap valid — kasus
+Miyabi/Tyrfing nggak ada toggle RES-ignore aktif):
+  - DEF Shred / DEF Ignore dari beberapa sumber dijumlah ADDITIF dalam
+    satu kurung (mengikuti okMuzzy v3.1.0 C1!P3), BUKAN chain
+    multiplikatif (1-x%) per sumber seperti dugaan awal. Untuk satu
+    sumber DEF hasilnya memang identik (perkalian komutatif).
+  - RES ignore juga additive: RES − Σignore, di luar perkalian.
+    PERHATIAN: semantik satu sumber PUN berubah vs formula lama
+    (lama: RES×(1−ig), baru: RES−ig) — contoh tervalidasi Chief Sidekick
+    S1 "ignores 15% of Fire RES" = Excel buff "Fire RES −0.15" (W-Engine
+    Buffs row 817): RES 0.20 → RESmult 0.95, bukan 0.83.
   - mindscape `multiplier_bonus` TIDAK masuk formula (semantiknya
     "increases TO x% of the original" = set, bukan tambah) -> masuk extra.
 """
@@ -179,6 +186,8 @@ def _map_named_stat(stat: str, unit: str) -> str:
 _EFFECT_TYPE_TO_STAT = {
     "damage_bonus": "damage_pct",
     "def_ignore": "def_ignore_pct",
+    "def_shred": "def_shred_pct",
+    "def_increase": "def_increase_pct",
     "res_ignore": "res_ignore_pct",
     "res_shred": "res_shred_pct",
 }
@@ -519,6 +528,10 @@ class CombatModifiers:
     pen_ratio_bonus_pct: float = 0.0
     pen_flat_bonus: float = 0.0
     def_ignore_pcts: list = field(default_factory=list)  # sumber independent
+    # DEF Shred / DEF Increase — additive di dalam kurung DEF musuh
+    # (ordering okMuzzy v3.1.0): DEF*(1 + DEFInc − ΣShred − ΣIgnore)*...
+    def_shred_pct: float = 0.0
+    def_increase_pct: float = 0.0
     res_ignore_pcts: list = field(default_factory=list)  # sumber independent
     res_shred_pct: float = 0.0
     # DMG Taken Modifier — efek yang nambah/ngurangin damage yang DITERIMA musuh:
@@ -539,6 +552,8 @@ class CombatModifiers:
             ("skill_mult%+", self.skill_mult_bonus_pct),
             ("PEN Ratio%+", self.pen_ratio_bonus_pct),
             ("PEN flat+", self.pen_flat_bonus),
+            ("DEF shred%", self.def_shred_pct),
+            ("DEF increase%", self.def_increase_pct),
             ("RES shred%", self.res_shred_pct),
             ("DMG taken%", self.dmg_taken_pct),
             ("DMG reduction%", self.dmg_reduction_pct),
@@ -589,6 +604,10 @@ def aggregate_modifiers(toggles: list, skill_type: str = None,
             mods.pen_flat_bonus += v
         elif t.stat == "def_ignore_pct":
             mods.def_ignore_pcts.append(v)
+        elif t.stat == "def_shred_pct":
+            mods.def_shred_pct += v
+        elif t.stat == "def_increase_pct":
+            mods.def_increase_pct += v
         elif t.stat == "res_ignore_pct":
             mods.res_ignore_pcts.append(v)
         elif t.stat == "res_shred_pct":
@@ -662,30 +681,36 @@ def get_level_factor(attacker_level: int, level_curve: dict | None = None) -> fl
 
 def compute_def_mult(enemy_def: float, pen_ratio_pct: float = 0.0,
                      pen_flat: float = 0.0, def_ignore_pcts=(),
-                     attacker_level: int = 60, level_factor_curve: dict | None = None) -> float:
-    """DEFmult = LF / (max(DEF*(1-PENratio)*Π(1-ignore_i) - PEN, 0) + LF).
+                     attacker_level: int = 60, level_factor_curve: dict | None = None,
+                     def_shred_pct: float = 0.0,
+                     def_increase_pct: float = 0.0) -> float:
+    """DEFmult = LF / (LF + max(DEF*(1+DEFInc−ΣShred−ΣIgnore)*(1−PEN%)−PEN, 0)).
 
+    Ordering aditif mengikuti okMuzzy v3.1.0 (C1!P3): DEF Shred dan DEF
+    Ignore dikurangkan ADDITIF dari DEF musuh (bukan chain multiplikatif
+    per sumber), PEN Ratio dikalikan SETELAHNYA, PEN flat terakhir.
     ``LF`` is the attacker's Level Factor from LevelCurveTemplateTb.
     Backward compatibility is preserved: omitting ``attacker_level`` uses 60,
     whose Level Factor is exactly 794 in the supplied curve.
     """
     level_factor = get_level_factor(attacker_level, level_factor_curve)
-    effective = enemy_def * (1 - pen_ratio_pct / 100)
+    effective = enemy_def * (1 + def_increase_pct / 100 - def_shred_pct / 100)
     for ig in def_ignore_pcts:
-        effective *= (1 - ig / 100)
-    effective = max(effective - pen_flat, 0)
+        effective -= enemy_def * (ig / 100)
+    effective = max(effective * (1 - pen_ratio_pct / 100) - pen_flat, 0)
     return level_factor / (effective + level_factor)
 
 
 def compute_res_mult(res_pct: float, res_ignore_pcts=(),
                      res_shred_pct: float = 0.0) -> float:
-    """RESmult = 1 - (RES * Π(1-ignore_i) - shred).
-    RES & shred dalam fraksi/persen-poin (mis. -0.20 = RES -20%).
+    """RESmult = 1 − (RES − Σignore_i − shred).
+
+    Mengikuti okMuzzy v3.1.0: semua debuff RES dijumlahkan ADDITIF dalam
+    satu kurung (1 − ΣRES − Σignore − shred), bukan dikurangi dari RES
+    dulu secara multiplikatif. RES & debit dalam fraksi/persen-poin
+    (mis. -0.20 = RES -20%).
     """
-    res = res_pct
-    for ig in res_ignore_pcts:
-        res *= (1 - ig / 100)
-    res -= res_shred_pct / 100
+    res = res_pct - sum(res_ignore_pcts) / 100 - res_shred_pct / 100
     return 1 - res
 
 
@@ -732,6 +757,8 @@ def compute_final_damage(
         mods.def_ignore_pcts,
         attacker_level=attacker_level,
         level_factor_curve=level_factor_curve,
+        def_shred_pct=mods.def_shred_pct,
+        def_increase_pct=mods.def_increase_pct,
     )
     res_mult = compute_res_mult(
         enemy.res_pct.get(element, 0.0),
