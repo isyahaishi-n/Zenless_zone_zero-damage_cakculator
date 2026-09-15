@@ -227,6 +227,7 @@ _DRIVE_FORMULA_KEYS = {
     "all_attribute_anomaly_damage_percent": "anomaly_dmg_pct",
     "attribute_anomaly_damage_percent": "anomaly_elem_dmg_pct",
     "disorder_damage_percent": "disorder_dmg_pct",
+    "vortex_damage_percent": "vortex_dmg_pct",
 }
 
 # "{head}_damage_percent" -> damage_pct dengan scope:
@@ -633,6 +634,13 @@ class CombatModifiers:
     anomaly_dmg_pct: float = 0.0
     # Disorder DMG (item 5) — bucket siap.
     disorder_dmg_pct: float = 0.0
+    # Vortex DMG Mult (item 5) — 'Anomaly Calcs' C122-C127 `Σ Vortex DMG Mult`;
+    # sumber mapped kandidat: W-Engine "Windswept and Vortex increases by X%"
+    # (sekarang masih damage_bonus generik — lihat todo item 6).
+    vortex_dmg_pct: float = 0.0
+    # Polarity Disorder (Yanagi) — 'Anomaly Calcs' C72-C91 parameter:
+    # (725% + 225% x Σ Skill Level) x Σ NagiAP. Tanpa sumber mapped (slot siap).
+    polarity_dmg_pct: float = 0.0
     extra: dict = field(default_factory=dict)
 
     def describe(self) -> str:
@@ -661,6 +669,7 @@ class CombatModifiers:
             ("Buildup Rate%", self.buildup_rate_pct),
             ("Anomaly DMG%", self.anomaly_dmg_pct),
             ("Disorder DMG%", self.disorder_dmg_pct),
+            ("Vortex DMG%", self.vortex_dmg_pct),
         ]
         for name, v in simple:
             if v:
@@ -742,6 +751,8 @@ def aggregate_modifiers(toggles: list, skill_type: str = None,
             mods.anomaly_dmg_pct += v  # scoped-elem version, elem diberikan caller
         elif t.stat == "disorder_dmg_pct":
             mods.disorder_dmg_pct += v
+        elif t.stat == "vortex_dmg_pct":
+            mods.vortex_dmg_pct += v
         else:
             mods.extra[t.stat] = mods.extra.get(t.stat, 0.0) + v
     return mods
@@ -925,6 +936,42 @@ ANOMALY_LABEL = {
     "Ether": "Corruption",
 }
 
+# ---------------------------------------------------------------------------
+# Kategori distribusi damage (item 7) — mirror 'CombinedRotationData' C1!V3:V11
+# (urutan & nama persis: Basics, Dashes, Assists, Specials, Others, Chains,
+# Ultimate, Anomaly, Disorder). Dipakai buat laporan rotasi (kolom V-Z:
+# Source / Total Damage / Total Daze / Total Buildup).
+# ---------------------------------------------------------------------------
+DISTRIBUTION_CATEGORIES = (
+    "Basics", "Dashes", "Assists", "Specials", "Others",
+    "Chains", "Ultimate", "Anomaly", "Disorder",
+)
+
+_SKILL_TYPE_TO_CATEGORY = {
+    "Basic Attack": "Basics",
+    "Dash Attack": "Dashes",
+    "Dodge Counter": "Dashes",
+    "Dodge": "Dashes",
+    "Quick Assist": "Assists",
+    "Defensive Assist": "Assists",
+    "Assist Follow-Up": "Assists",
+    "Assist": "Assists",
+    "Special Attack": "Specials",
+    "EX Special Attack": "Specials",
+    "Chain Attack": "Chains",
+    "Ultimate": "Ultimate",
+    "Anomaly": "Anomaly",
+    "Disorder": "Disorder",
+    "Polarity Disorder": "Disorder",
+    "Vortex": "Disorder",
+}
+
+
+def skill_category(skill_type: str) -> str:
+    """Petakan skill_type granular -> kategori distribusi Excel.
+    Unknown -> 'Others' (kategori terakhir yang relevan)."""
+    return _SKILL_TYPE_TO_CATEGORY.get(skill_type or "", "Others")
+
 
 def compute_anomaly_damage(
     element: str,
@@ -1018,6 +1065,272 @@ def compute_anomaly_damage(
         "refringe_mult": refringe_mult,
         "non_crit": non_crit,
         "crit": crit,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Disorder / Polarity / Vortex (item 5) — okMuzzy 'Anomaly Calcs' C65-C70,
+# C72-C91, C122-C127 (verbatim, 2026-09-15).
+# ---------------------------------------------------------------------------
+#
+# Base % per instance (SEMUA konstanta di-copy PERSIS dari Excel):
+#   Disorder base (C65-C70), `t` = sisa durasi anomaly yang digantikan:
+#     Physical/Ice : 450% + ROUNDDOWN(t)        x 7.5%
+#     Wind         : 100%
+#     Fire         : 450% + ROUNDDOWN(t / 0.5)  x 50%
+#     Electric     : 450% + ROUNDDOWN(t)        x 125%
+#     Ether        : 450% + ROUNDDOWN(t / 0.5)  x 62.5%
+#   Polarity (C72-C91) memakai tabel base yang SAMA.
+#   Vortex base (C122-C127), `t` = Final MAX Duration (default 10s):
+#     Physical : 800% + t x 7.5%
+#     Wind     : 0%  (Vortex = Wind + Physical/Ice; baris Wind = 0)
+#     Ice      : Miyabi (Frost): 0% + t x 75% ; selain itu 1300% + t x 7.5%
+#     Fire     : 900% + (t / 0.5) x 7.5%
+#     Electric : 650% + t x 125%
+#     Ether    : 650% + (t / 0.5) x 62.5%
+# Catatan: per-instance damage TIDAK bisa crit (tidak ada bracket CR x CD
+# di C65-C70 / C72-C91 / C122-C127) — `crit` = `non_crit`.
+
+def disorder_base_pct(element: str, remaining_duration_s: float = 10.0) -> float:
+    """Base Disorder/Polarity % (C65-C70, `ROUNDDOWN` = floor positif)."""
+    t = max(0.0, float(remaining_duration_s))
+    if element in ("Physical", "Ice"):
+        return 450.0 + float(int(t)) * 7.5
+    if element == "Wind":
+        return 100.0
+    if element == "Fire":
+        return 450.0 + float(int(t / 0.5)) * 50.0
+    if element == "Electric":
+        return 450.0 + float(int(t)) * 125.0
+    if element == "Ether":
+        return 450.0 + float(int(t / 0.5)) * 62.5
+    raise KeyError(f"elemen disorder tidak dikenal: {element!r}")
+
+
+def vortex_base_pct(element: str, duration_s: float = 10.0,
+                    is_frost: bool = False) -> float:
+    """Base Vortex % (C122-C127). `duration_s` = Final MAX Duration (A54)."""
+    t = max(0.0, float(duration_s))
+    if element == "Physical":
+        return 800.0 + t * 7.5
+    if element == "Wind":
+        return 0.0
+    if element == "Ice":
+        return (0.0 + t * 75.0) if is_frost else (1300.0 + t * 7.5)
+    if element == "Fire":
+        return 900.0 + (t / 0.5) * 7.5
+    if element == "Electric":
+        return 650.0 + t * 125.0
+    if element == "Ether":
+        return 650.0 + (t / 0.5) * 62.5
+    raise KeyError(f"elemen vortex tidak dikenal: {element!r}")
+
+
+# Yanagi Polarity: faktor pengali bagian disorder (C72/C79/C86).
+POLARITY_FACTOR_BY_MINDSCAPE = {0: 0.15, 2: 0.5, 6: 0.8}
+
+
+def polarity_factor_for_mindscape(mindscape_rank: int) -> float:
+    """Faktor Polarity sesuai M-rank Yanagi (M0 0.15, M2+ 0.5, M6 0.8)."""
+    if mindscape_rank >= 6:
+        return POLARITY_FACTOR_BY_MINDSCAPE[6]
+    if mindscape_rank >= 2:
+        return POLARITY_FACTOR_BY_MINDSCAPE[2]
+    return POLARITY_FACTOR_BY_MINDSCAPE[0]
+
+
+def _anomaly_chain_multipliers(enemy: "EnemyStats", element: str,
+                               mods: "CombatModifiers",
+                               attacker_level: int,
+                               level_factor_curve: dict | None,
+                               enemy_stunned: bool) -> dict:
+    """Chain DEF/RES/Stun/DMGTaken yang dipakai bareng anomaly & disorder."""
+    def_mult = compute_def_mult(
+        enemy.def_val,
+        mods.pen_ratio_bonus_pct,
+        mods.pen_flat_bonus,
+        mods.def_ignore_pcts,
+        attacker_level=attacker_level,
+        level_factor_curve=level_factor_curve,
+        def_shred_pct=mods.def_shred_pct,
+        def_increase_pct=mods.def_increase_pct,
+    )
+    res_mult = compute_res_mult(
+        enemy.res_pct.get(element, 0.0),
+        mods.res_ignore_pcts,
+        mods.res_shred_pct,
+    )
+    stun_mult = (1 + enemy.stun_taken_pct + mods.stun_dmg_mult_pct / 100
+                 ) if enemy_stunned else 1.0
+    dmg_taken_mult = ((1 + mods.dmg_taken_pct / 100)
+                      * (1 - mods.dmg_reduction_pct / 100))
+    return {
+        "def_mult": def_mult,
+        "res_mult": res_mult,
+        "stun_mult": stun_mult,
+        "dmg_taken_mult": dmg_taken_mult,
+    }
+
+
+def compute_disorder_damage(
+    element: str,
+    atk_combat: float,
+    anomaly_proficiency: float,
+    enemy: "EnemyStats",
+    mods: CombatModifiers = None,
+    attacker_level: int = 60,
+    level_factor_curve: dict | None = None,
+    enemy_stunned: bool = False,
+    remaining_duration_s: float = 10.0,
+    extra_base_pct: float = 0.0,
+    dmg_bonus_pct: float = 0.0,
+    refringe_coef_pct: float = 0.0,
+) -> dict:
+    """Disorder DMG per instance (okMuzzy 'Anomaly Calcs' C65-C70, verbatim):
+
+        Disorder = (Σ Disorder BaseDMG + Σ {elem}D BaseDMG + base_elem(t))
+            x ATK_combat x DEFmult x RESmult(elem) x (1 + Σ Stun Multiplier)
+            x (AP/100) x 2 x (1 - DMGReduction)
+            x (1 + A4 + Σ Disorder DMG% + Σ {elem}D DMG%)
+            x (1 + Σ Refringe Coefficient)
+
+    - base_elem(t): disorder_base_pct (t = sisa durasi anomaly sebelumnya).
+    - `extra_base_pct`: Σ Disorder BaseDMG + Σ {elem}D BaseDMG (flat % dari
+      buff; default 0 — belum ada sumber mapped).
+    - `dmg_bonus_pct`: panel A4 (Disorder DMG%); bucket buff =
+      mods.disorder_dmg_pct (scoped elemen menangani {elem}D DMG%).
+    - TIDAK ada bracket crit (C65-C70) -> `crit` = `non_crit`.
+    """
+    mods = mods or CombatModifiers()
+    base = extra_base_pct + disorder_base_pct(element, remaining_duration_s)
+    m = _anomaly_chain_multipliers(enemy, element, mods, attacker_level,
+                                   level_factor_curve, enemy_stunned)
+    dmg_bonus_mult = 1 + (dmg_bonus_pct + mods.disorder_dmg_pct) / 100
+    refringe_mult = 1 + refringe_coef_pct / 100
+    non_crit = (atk_combat * (base / 100)
+                * m["def_mult"] * m["res_mult"] * m["stun_mult"]
+                * (anomaly_proficiency / 100) * 2 * m["dmg_taken_mult"]
+                * dmg_bonus_mult * refringe_mult)
+    return {
+        "element": element,
+        "base_pct": base,
+        "def_mult": m["def_mult"],
+        "res_mult": m["res_mult"],
+        "stun_mult": m["stun_mult"],
+        "dmg_taken_mult": m["dmg_taken_mult"],
+        "dmg_bonus_mult": dmg_bonus_mult,
+        "refringe_mult": refringe_mult,
+        "non_crit": non_crit,
+        "crit": non_crit,
+    }
+
+
+def compute_polarity_disorder_damage(
+    element: str,
+    atk_combat: float,
+    anomaly_proficiency: float,
+    enemy: "EnemyStats",
+    mods: CombatModifiers = None,
+    attacker_level: int = 60,
+    level_factor_curve: dict | None = None,
+    enemy_stunned: bool = False,
+    remaining_duration_s: float = 10.0,
+    polarity_factor: float = 0.15,
+    polarity_skill_level: float = 0.0,
+    polarity_nagi_ap: float = 0.0,
+    extra_base_pct: float = 0.0,
+    dmg_bonus_pct: float = 0.0,
+    refringe_coef_pct: float = 0.0,
+) -> dict:
+    """Polarity Disorder (Yanagi) per instance — 'Anomaly Calcs' C72-C91:
+
+        ((Σ Disorder BaseDMG + base_elem(t)) x ATK_combat x polarity_factor
+          + (725% + 225% x Σ Polarity Skill Level) x Σ Polarity NagiAP)
+        x DEFmult x RESmult(elem) x (1 + Σ Stun Multiplier)
+        x (AP/100) x 2 x (1 - DMGReduction)
+        x (1 + A4 + Σ Disorder DMG% + Σ {elem}D DMG%)
+        x (1 + Σ Refringe Coefficient)
+
+    `polarity_factor` = POLARITY_FACTOR_BY_MINDSCAPE (M0 0.15 / M2+ 0.5 /
+    M6 0.8). Tanpa bracket crit -> `crit` = `non_crit`.
+    """
+    mods = mods or CombatModifiers()
+    base = extra_base_pct + disorder_base_pct(element, remaining_duration_s)
+    polarity_term = (7.25 + 2.25 * polarity_skill_level) * polarity_nagi_ap
+    m = _anomaly_chain_multipliers(enemy, element, mods, attacker_level,
+                                   level_factor_curve, enemy_stunned)
+    dmg_bonus_mult = 1 + (dmg_bonus_pct + mods.disorder_dmg_pct) / 100
+    refringe_mult = 1 + refringe_coef_pct / 100
+    pre = atk_combat * (base / 100) * polarity_factor + polarity_term
+    non_crit = (pre * m["def_mult"] * m["res_mult"] * m["stun_mult"]
+                * (anomaly_proficiency / 100) * 2 * m["dmg_taken_mult"]
+                * dmg_bonus_mult * refringe_mult)
+    return {
+        "element": element,
+        "base_pct": base,
+        "polarity_factor": polarity_factor,
+        "polarity_term": polarity_term,
+        "def_mult": m["def_mult"],
+        "res_mult": m["res_mult"],
+        "stun_mult": m["stun_mult"],
+        "dmg_taken_mult": m["dmg_taken_mult"],
+        "dmg_bonus_mult": dmg_bonus_mult,
+        "refringe_mult": refringe_mult,
+        "non_crit": non_crit,
+        "crit": non_crit,
+    }
+
+
+def compute_vortex_damage(
+    element: str,
+    atk_combat: float,
+    anomaly_proficiency: float,
+    enemy: "EnemyStats",
+    mods: CombatModifiers = None,
+    attacker_level: int = 60,
+    level_factor_curve: dict | None = None,
+    enemy_stunned: bool = False,
+    duration_s: float = 10.0,
+    is_frost: bool = False,
+    extra_base_pct: float = 0.0,
+    elem_dmg_bonus_pct: float = 0.0,
+    refringe_coef_pct: float = 0.0,
+) -> dict:
+    """Vortex DMG per instance — 'Anomaly Calcs' C122-C127 (verbatim):
+
+        Vortex = (base_elem(t) x (1 + Σ Vortex DMG Mult))
+            x ATK_combat x DEFmult x RESmult(elem) x (1 + Σ Stun Multiplier)
+            x (AP/100) x 2 x (1 - DMGReduction)
+            x (1 + A3 + Σ {elem} DMG% + Σ Anomaly DMG% + Σ Vortex DMG%)
+            x (1 + Σ Refringe Coefficient)
+
+    - `duration_s` = Final MAX Duration (default 10s); `is_frost` = Miyabi
+      (baris Ice beda: 0% + t x 75%).
+    - Vortex = Wind + Physical/Ice; baris Wind = 0%.
+    - Tanpa bracket crit -> `crit` = `non_crit`.
+    """
+    mods = mods or CombatModifiers()
+    base = extra_base_pct + vortex_base_pct(element, duration_s, is_frost)
+    m = _anomaly_chain_multipliers(enemy, element, mods, attacker_level,
+                                   level_factor_curve, enemy_stunned)
+    dmg_bonus_mult = (1 + (elem_dmg_bonus_pct + mods.anomaly_dmg_pct
+                           + mods.vortex_dmg_pct) / 100)
+    refringe_mult = 1 + refringe_coef_pct / 100
+    non_crit = (atk_combat * (base / 100)
+                * m["def_mult"] * m["res_mult"] * m["stun_mult"]
+                * (anomaly_proficiency / 100) * 2 * m["dmg_taken_mult"]
+                * dmg_bonus_mult * refringe_mult)
+    return {
+        "element": element,
+        "base_pct": base,
+        "def_mult": m["def_mult"],
+        "res_mult": m["res_mult"],
+        "stun_mult": m["stun_mult"],
+        "dmg_taken_mult": m["dmg_taken_mult"],
+        "dmg_bonus_mult": dmg_bonus_mult,
+        "refringe_mult": refringe_mult,
+        "non_crit": non_crit,
+        "crit": non_crit,
     }
 
 
@@ -1249,9 +1562,12 @@ def compute_all_damage(snapshot: dict, enemy: "EnemyStats",
             ) if hit.get("buildup", 0.0) else 0.0
             results.append({
                 "skill_label": skill_data["label"],
+                "skill_key": skill_idx,
                 "hit_name": hit["name"],
+                "hit_id": hit.get("hit_id"),
                 "hit_element": hit_element,
                 "hit_skill_type": hit_skill_type,
+                "skill_category": skill_category(hit_skill_type),
                 "damage_pct": hit["damage_pct"],
                 "daze_pct": hit.get("daze_pct", 0.0),
                 "buildup_pct": hit.get("buildup", 0.0),
@@ -1285,9 +1601,12 @@ def compute_all_damage(snapshot: dict, enemy: "EnemyStats",
         )
         results.append({
             "skill_label": "Anomaly",
+            "skill_key": None,
             "hit_name": f"{ANOMALY_LABEL[elem]} ({elem})",
+            "hit_id": None,
             "hit_element": elem,
             "hit_skill_type": "Anomaly",
+            "skill_category": "Anomaly",
             "damage_pct": ANOMALY_ELEM_MULT_PCT[elem],
             "daze_pct": 0.0,
             "buildup_pct": 0.0,
@@ -1299,6 +1618,511 @@ def compute_all_damage(snapshot: dict, enemy: "EnemyStats",
             "anomaly_tick": True,
         })
     return results, toggles
+
+
+# ---------------------------------------------------------------------------
+# Rotation & DPS output (item 7) — mirror 'DPS Calcs' + 'CombinedRotationData'
+# ---------------------------------------------------------------------------
+#
+# Format rotasi (JSON) — reference hit pakai `hit_id` (paling robust), atau
+# `skill`/`skill_category`/`hit_skill_type` + `hit`/`hit_index`:
+#
+#   {
+#     "name": "Miyabi basic loop",
+#     "time": 20.0,                       # detik, WAJIB (> 0)
+#     "rotation_mult": 1.0,               # pengali global (opsional)
+#     "normal": [{"hit_id": 1091007, "count": 3},
+#                {"skill": "Anomaly", "hit": "Shatter (Ice)", "count": 1}],
+#     "stun":   [{"hit_id": 1091019, "count": 1}],
+#     "normal_repeat": 1,                 # 'Repeat this rotation X times'
+#     "stun_repeat": 1                    # 'Repeat this stun rotation X times'
+#   }
+#
+# Fase stun persis ala BC-style: `normal` dihitung tanpa Stun Modifier,
+# `stun` dengan `enemy_stunned=True` (StunTaken + StunMultiplier bucket).
+# Anomaly DoT (Burn/Shock/Corruption): `count` = jumlah tick
+# (C1!W10 Rounddown(Duration x rate)) — tetap kerjaan input rotasi.
+# Total damage = Σ hit x count x repeat x rotation_mult; DPS = total / time.
+
+def normalize_rotation(data) -> dict:
+    """Normalisasi file/masukan rotasi -> dict lengkap (validasi + alias).
+    Menerima list polos (dianggap `normal`) atau dict."""
+    if isinstance(data, list):
+        data = {"normal": data}
+    if not isinstance(data, dict):
+        raise ValueError("rotation harus berupa dict atau list entry")
+
+    time = data.get("time", data.get("duration"))
+    if time is None:
+        raise ValueError("rotation butuh field 'time' (durasi rotasi, detik)")
+    time = float(time)
+    if time <= 0:
+        raise ValueError(f"rotation 'time' harus > 0 (dapat {time})")
+
+    mult = float(data.get("rotation_mult", 1.0))
+    if mult <= 0:
+        raise ValueError(f"rotation_mult harus > 0 (dapat {mult})")
+
+    def _repeat(*keys, default=1) -> int:
+        for k in keys:
+            if data.get(k) is not None:
+                return int(data[k])
+        return default
+
+    return {
+        "name": data.get("name") or "rotation",
+        "time": time,
+        "rotation_mult": mult,
+        "normal": list(data.get("normal") or data.get("rotation") or []),
+        "stun": list(data.get("stun") or data.get("stun_rotation") or []),
+        "normal_repeat": _repeat("normal_repeat", "repeat"),
+        "stun_repeat": _repeat("stun_repeat"),
+        # Disorder/Polarity/Vortex (item 5) — list spec per instance:
+        #   {"element": "Ice", "count": 1, "remaining_duration": 10}
+        #   polarity tambahan: {"mindscape": 0|2|6, "skill_level": n, "nagi_ap": x}
+        #   vortex tambahan: {"duration": 10, "is_frost": false}
+        "disorder": list(data.get("disorder") or []),
+        "polarity": list(data.get("polarity") or []),
+        "vortex": list(data.get("vortex") or []),
+    }
+
+
+def _resolve_rotation_ref(rows: list, ref, phase: str) -> dict:
+    """Resolve satu entry rotasi -> row hasil compute_all_damage.
+
+    Prioritas: `hit_id` > `skill`/`skill_category` + `hit`/`hit_index`.
+    Raise LookupError dengan daftar kandidat kalau ambigu/tidak ketemu.
+    """
+    if not isinstance(ref, dict):
+        raise ValueError(f"[{phase}] entry rotasi harus dict, dapat {type(ref).__name__}")
+
+    if ref.get("hit_id") is not None:
+        hid = int(ref["hit_id"])
+        for r in rows:
+            if r.get("hit_id") == hid:
+                return r
+        avail = sorted({r["hit_id"] for r in rows if r.get("hit_id") is not None})
+        raise LookupError(f"[{phase}] hit_id {hid} tidak ada di skill karakter ini; "
+                          f"hit_id tersedia: {avail}")
+
+    pool = list(rows)
+    skill = ref.get("skill", ref.get("skill_category", ref.get("hit_skill_type")))
+    if skill is not None:
+        s = str(skill).strip().lower()
+        pool = [r for r in pool
+                if r["skill_label"].strip().lower() == s
+                or str(r.get("skill_category", "")).strip().lower() == s
+                or r["hit_skill_type"].strip().lower() == s]
+        if not pool:
+            labels = sorted({r["skill_label"] for r in rows})
+            raise LookupError(f"[{phase}] skill '{skill}' tidak cocok; "
+                              f"skill tersedia: {labels}")
+
+    hit = ref.get("hit", ref.get("hit_name"))
+    if hit is not None:
+        h = str(hit).strip().lower()
+        exact = [r for r in pool if r["hit_name"].strip().lower() == h]
+        picks = exact or [r for r in pool if h in r["hit_name"].strip().lower()]
+        if not picks:
+            names = sorted({r["hit_name"] for r in pool})
+            raise LookupError(f"[{phase}] hit '{hit}' tidak cocok; "
+                              f"hit tersedia: {names}")
+        pool = picks
+
+    if ref.get("hit_index") is not None:
+        idx = int(ref["hit_index"])
+        if idx < 0 or idx >= len(pool):
+            raise IndexError(f"[{phase}] hit_index {idx} di luar rentang "
+                             f"(0..{len(pool) - 1})")
+        return pool[idx]
+
+    if len(pool) == 1:
+        return pool[0]
+
+    names = sorted({r["hit_name"] for r in pool})
+    raise LookupError(f"[{phase}] referensi ambigu ({len(pool)} hit) — tambahkan "
+                      f"'hit_index'/'hit_id'; kandidat: {names}")
+
+
+def summarize_rotation(rotation, rows_by_phase: dict,
+                       extra_rows: list | None = None) -> dict:
+    """Pure summation: rotation + rows per fase -> laporan total & distribusi.
+
+    `rows_by_phase` = {"normal": [...], "stun": [...]} (output
+    compute_all_damage). Excel: total = Σ hit x count x repeat x rotation_mult;
+    distribusi per kategori (Basics/Dashes/.../Anomaly/Disorder) ala
+    CombinedRotationData kolom V-Z. Damage pakai `expected` (CR-weighted).
+
+    `extra_rows` = row sintetis (Disorder/Polarity/Vortex dari item 5) yang
+    TIDAK direferensikan lewat file rotasi — tiap row bawa `count` sendiri dan
+    dihitung `count x normal_repeat x rotation_mult`.
+    """
+    rot = normalize_rotation(rotation)
+    totals = {"damage": 0.0, "non_crit": 0.0, "crit": 0.0,
+              "daze": 0.0, "buildup": 0.0}
+    dist = {c: {"category": c, "damage": 0.0, "non_crit": 0.0, "crit": 0.0,
+                "daze": 0.0, "buildup": 0.0} for c in DISTRIBUTION_CATEGORIES}
+    entries = []
+
+    def _accumulate(row, uses, phase, count):
+        non_crit = float(row.get("non_crit", 0.0)) * uses
+        crit = float(row.get("crit", 0.0)) * uses
+        damage = float(row.get("expected", row.get("non_crit", 0.0))) * uses
+        daze = float(row.get("daze", 0.0)) * uses
+        buildup = float(row.get("buildup", 0.0)) * uses
+
+        totals["damage"] += damage
+        totals["non_crit"] += non_crit
+        totals["crit"] += crit
+        totals["daze"] += daze
+        totals["buildup"] += buildup
+
+        cat = row.get("skill_category") or skill_category(row.get("hit_skill_type", ""))
+        d = dist.setdefault(cat, {"category": cat, "damage": 0.0, "non_crit": 0.0,
+                                  "crit": 0.0, "daze": 0.0, "buildup": 0.0})
+        d["damage"] += damage
+        d["non_crit"] += non_crit
+        d["crit"] += crit
+        d["daze"] += daze
+        d["buildup"] += buildup
+
+        entries.append({
+            "phase": phase,
+            "skill": row.get("skill_label"),
+            "hit": row.get("hit_name"),
+            "hit_id": row.get("hit_id"),
+            "category": cat,
+            "element": row.get("hit_element"),
+            "count": count,
+            "damage": damage,
+            "daze": daze,
+            "buildup": buildup,
+        })
+
+    for phase, repeat_key in (("normal", "normal_repeat"), ("stun", "stun_repeat")):
+        rows = rows_by_phase.get(phase) or []
+        repeat = int(rot[repeat_key])
+        if repeat < 0:
+            raise ValueError(f"{repeat_key} tidak boleh negatif (dapat {repeat})")
+        for ref in rot[phase]:
+            row = _resolve_rotation_ref(rows, ref, phase)
+            count = float(ref.get("count", 1) or 0)
+            _accumulate(row, count * repeat * rot["rotation_mult"], phase, count)
+
+    # Disorder / Polarity / Vortex (item 5) — sudah per-instance, count-nya
+    # sendiri; ikut repeat rotasi normal + rotation_mult (tanpa repeat stun).
+    for row in extra_rows or []:
+        count = float(row.get("count", 1) or 0)
+        uses = count * rot["normal_repeat"] * rot["rotation_mult"]
+        _accumulate(row, uses, row.get("phase", "disorder"), count)
+
+    damage_total = totals["damage"]
+    distribution = []
+    for c in DISTRIBUTION_CATEGORIES:
+        d = dist[c]
+        if d["damage"] or d["daze"] or d["buildup"]:
+            d = dict(d)
+            d["pct"] = (d["damage"] / damage_total * 100.0) if damage_total else 0.0
+            distribution.append(d)
+
+    return {
+        "name": rot["name"],
+        "time": rot["time"],
+        "rotation_mult": rot["rotation_mult"],
+        "normal_repeat": rot["normal_repeat"],
+        "stun_repeat": rot["stun_repeat"],
+        "total": damage_total,
+        "total_non_crit": totals["non_crit"],
+        "total_crit": totals["crit"],
+        "total_daze": totals["daze"],
+        "total_buildup": totals["buildup"],
+        "dps": damage_total / rot["time"],
+        "dps_non_crit": totals["non_crit"] / rot["time"],
+        "dps_crit": totals["crit"] / rot["time"],
+        "distribution": distribution,
+        "entries": entries,
+    }
+
+
+def _special_row(skill_label: str, hit_name: str, element: str,
+                 skill_type: str, damage: float, count: float,
+                 phase: str, damage_pct: float) -> dict:
+    return {
+        "skill_label": skill_label,
+        "skill_key": None,
+        "hit_name": hit_name,
+        "hit_id": None,
+        "hit_element": element,
+        "hit_skill_type": skill_type,
+        "skill_category": "Disorder",
+        "damage_pct": damage_pct,
+        "daze_pct": 0.0,
+        "buildup_pct": 0.0,
+        "non_crit": damage,
+        "crit": damage,
+        "expected": damage,
+        "daze": 0.0,
+        "buildup": 0.0,
+        "count": float(count),
+        "phase": phase,
+    }
+
+
+def build_special_rows(snapshot: dict, enemy: "EnemyStats", toggles: list,
+                       rot: dict,
+                       level_factor_curve: dict | None = None) -> list:
+    """Baris sintetis Disorder / Polarity / Vortex (item 5) dari section
+    rotasi `disorder` / `polarity` / `vortex` — dimasukkan ke distribusi
+    kategori "Disorder" tanpa perlu direferensikan lewat list normal.
+
+    Tiap spec: {"element", "count", "remaining_duration"|"duration",
+    ...}. Default element = elemen karakter. Tidak ada auto-deteksi (aturan
+    metodologi #5): trigger harus eksplisit di file rotasi.
+    """
+    stats = snapshot["stats"]
+    agent_element = snapshot.get("element", "Physical")
+    level = int(snapshot.get("level", 60))
+    ap = stats.get("Anomaly Proficiency", 0.0)
+    rows = []
+
+    def _mods(elem):
+        m = aggregate_modifiers(toggles, skill_type=None, element=elem)
+        atk = stats["ATK"] * (1 + m.atk_bonus_pct_cond / 100) + m.atk_flat_cond
+        return m, atk
+
+    for spec in rot.get("disorder") or []:
+        elem = spec.get("element") or agent_element
+        mods, atk = _mods(elem)
+        d = compute_disorder_damage(
+            element=elem, atk_combat=atk, anomaly_proficiency=ap, enemy=enemy,
+            mods=mods, attacker_level=level, level_factor_curve=level_factor_curve,
+            enemy_stunned=False,
+            remaining_duration_s=float(spec.get("remaining_duration", 10.0)),
+            extra_base_pct=float(spec.get("extra_base_pct", 0.0)),
+            dmg_bonus_pct=float(spec.get("dmg_bonus_pct", 0.0)),
+        )
+        rows.append(_special_row(
+            "Disorder", f"Disorder ({elem})", elem, "Disorder",
+            d["non_crit"], spec.get("count", 1), "disorder", d["base_pct"]))
+
+    for spec in rot.get("polarity") or []:
+        elem = spec.get("element") or agent_element
+        mods, atk = _mods(elem)
+        ms = int(spec.get("mindscape", snapshot.get("mindscape", 0)) or 0)
+        d = compute_polarity_disorder_damage(
+            element=elem, atk_combat=atk, anomaly_proficiency=ap, enemy=enemy,
+            mods=mods, attacker_level=level, level_factor_curve=level_factor_curve,
+            enemy_stunned=False,
+            remaining_duration_s=float(spec.get("remaining_duration", 10.0)),
+            polarity_factor=float(spec.get("polarity_factor",
+                                           polarity_factor_for_mindscape(ms))),
+            polarity_skill_level=float(spec.get("skill_level", 0.0)),
+            polarity_nagi_ap=float(spec.get("nagi_ap", 0.0)),
+            extra_base_pct=float(spec.get("extra_base_pct", 0.0)),
+        )
+        rows.append(_special_row(
+            "Disorder", f"Polarity Disorder ({elem})", elem, "Polarity Disorder",
+            d["non_crit"], spec.get("count", 1), "disorder", d["base_pct"]))
+
+    for spec in rot.get("vortex") or []:
+        elem = spec.get("element") or agent_element
+        mods, atk = _mods(elem)
+        is_frost = bool(spec.get("is_frost", False))
+        d = compute_vortex_damage(
+            element=elem, atk_combat=atk, anomaly_proficiency=ap, enemy=enemy,
+            mods=mods, attacker_level=level, level_factor_curve=level_factor_curve,
+            enemy_stunned=False,
+            duration_s=float(spec.get("duration", 10.0)),
+            is_frost=is_frost,
+            extra_base_pct=float(spec.get("extra_base_pct", 0.0)),
+            elem_dmg_bonus_pct=stats.get(f"{elem} DMG", 0.0),
+        )
+        rows.append(_special_row(
+            "Disorder", f"Vortex ({elem})", elem, "Vortex",
+            d["non_crit"], spec.get("count", 1), "disorder", d["base_pct"]))
+
+    return rows
+
+
+def compute_rotation(snapshot: dict, enemy: "EnemyStats", wengines: dict,
+                     sets: dict, mindscapes: dict, rotation,
+                     level_factor_curve: dict | None = None) -> tuple[dict, list]:
+    """Hitung rotasi penuh utk satu snapshot: normal (tanpa stun) + fase stun
+    (enemy_stunned=True, ala BC-style) -> laporan total + DPS + distribusi.
+
+    Return (report, toggles). Rows dihitung sekali per fase; fase stun hanya
+    dihitung kalau rotasi punya entry `stun`. Section `disorder`/`polarity`/
+    `vortex` (item 5) menambah baris sintetis ke distribusi "Disorder".
+    """
+    rot = normalize_rotation(rotation)
+    rows_normal, toggles = compute_all_damage(
+        snapshot, enemy, wengines, sets, mindscapes,
+        enemy_stunned=False, level_factor_curve=level_factor_curve)
+    rows_stun = rows_normal
+    if rot["stun"]:
+        rows_stun, _ = compute_all_damage(
+            snapshot, enemy, wengines, sets, mindscapes,
+            enemy_stunned=True, level_factor_curve=level_factor_curve)
+    extra = build_special_rows(snapshot, enemy, toggles, rot, level_factor_curve)
+    report = summarize_rotation(rot, {"normal": rows_normal, "stun": rows_stun},
+                                extra_rows=extra)
+    report["avatar"] = snapshot.get("name")
+    return report, toggles
+
+
+def format_rotation_report(report: dict) -> str:
+    """Laporan rotasi siap-print (mirror layout CombinedRotationData V-Z)."""
+    lines = []
+    lines.append(f"  Rotation: {report['name']}  ({report['time']:g}s"
+                 + (f", x{report['rotation_mult']:g} mult" if report["rotation_mult"] != 1 else "")
+                 + (f", normal x{report['normal_repeat']}" if report["normal_repeat"] != 1 else "")
+                 + (f", stun x{report['stun_repeat']}" if report["stun_repeat"] != 1 else "")
+                 + ")")
+    lines.append(f"    Total damage : {report['total']:>12,.1f}"
+                 f"   (non-crit {report['total_non_crit']:,.0f} / crit {report['total_crit']:,.0f})")
+    lines.append(f"    DPS          : {report['dps']:>12,.1f}/s")
+    lines.append(f"    Total daze   : {report['total_daze']:>12,.1f}"
+                 f"   buildup {report['total_buildup']:,.1f}")
+    if report["distribution"]:
+        lines.append("    Distribution:")
+        lines.append(f"      {'Source':<10} {'Total Damage':>14} {'%':>7}"
+                     f" {'Total Daze':>12} {'Total Buildup':>14}")
+        for d in report["distribution"]:
+            lines.append(f"      {d['category']:<10} {d['damage']:>14,.1f}"
+                         f" {d['pct']:>6.1f}% {d['daze']:>12,.1f}"
+                         f" {d['buildup']:>14,.1f}")
+    return "\n".join(lines)
+
+
+def run_rotation_selftest() -> bool:
+    """Sanity check murni (tanpa snapshot): penjumlahan + distribusi + resolve.
+    Angka manual kecil, mengikuti pola sanity check item 1-4/9."""
+    print("=== Rotation selftest (summarize_rotation) ===")
+    rows_normal = [
+        {"skill_label": "Basic Attack", "hit_name": "Basic Attack: A", "hit_id": 1,
+         "hit_skill_type": "Basic Attack", "skill_category": "Basics",
+         "hit_element": "Physical", "non_crit": 100.0, "crit": 200.0,
+         "expected": 150.0, "daze": 10.0, "buildup": 5.0},
+        {"skill_label": "Basic Attack", "hit_name": "Basic Attack: A", "hit_id": 2,
+         "hit_skill_type": "Basic Attack", "skill_category": "Basics",
+         "hit_element": "Ice", "non_crit": 300.0, "crit": 600.0,
+         "expected": 450.0, "daze": 20.0, "buildup": 15.0},
+        {"skill_label": "Special Attack", "hit_name": "EX Special Attack: B", "hit_id": 3,
+         "hit_skill_type": "EX Special Attack", "skill_category": "Specials",
+         "hit_element": "Ice", "non_crit": 1000.0, "crit": 2000.0,
+         "expected": 1500.0, "daze": 0.0, "buildup": 0.0},
+        {"skill_label": "Anomaly", "hit_name": "Shatter (Ice)", "hit_id": None,
+         "hit_skill_type": "Anomaly", "skill_category": "Anomaly",
+         "hit_element": "Ice", "non_crit": 5000.0, "crit": 5000.0,
+         "expected": 5000.0, "daze": 0.0, "buildup": 0.0, "anomaly_tick": True},
+    ]
+    rows_stun = [dict(r, non_crit=r["non_crit"] * 1.5, crit=r["crit"] * 1.5,
+                      expected=r["expected"] * 1.5,
+                      daze=r["daze"] * 1.5, buildup=r["buildup"] * 1.5)
+                 for r in rows_normal]
+
+    rotation = {
+        "name": "selftest",
+        "time": 10.0,
+        "normal": [
+            {"hit_id": 1, "count": 2},          # 2x150 = 300
+            {"skill": "Specials", "count": 1},  # 1500
+            {"skill": "Anomaly", "hit": "Shatter (Ice)", "count": 3},  # 3x5000 = 15000
+        ],
+        "stun": [{"hit_id": 2, "count": 1}],    # 1x675 = 675
+        "normal_repeat": 2,                     # normal x2
+        "stun_repeat": 1,
+    }
+    report = summarize_rotation(rotation, {"normal": rows_normal, "stun": rows_stun})
+
+    # Manual: normal uses = count x repeat x mult ; dmg expected
+    exp_normal = (2 * 2 * 150.0) + (1 * 2 * 1500.0) + (3 * 2 * 5000.0)
+    exp_stun = (1 * 1 * 675.0)
+    exp_total = exp_normal + exp_stun
+    checks = [
+        ("total", report["total"], exp_total),
+        ("dps", report["dps"], exp_total / 10.0),
+        ("daze", report["total_daze"], 40.0 + 30.0),
+        ("buildup", report["total_buildup"], 20.0 + 22.5),
+    ]
+    # distribusi: Basics = 600 (normal 4x150) + 675 (stun) = 1275;
+    # Specials = 3000; Anomaly = 30000
+    dist = {d["category"]: d["damage"] for d in report["distribution"]}
+    checks += [
+        ("dist.Basics", dist.get("Basics", 0.0), 600.0 + 675.0),
+        ("dist.Specials", dist.get("Specials", 0.0), 3000.0),
+        ("dist.Anomaly", dist.get("Anomaly", 0.0), 30000.0),
+        ("entries", float(len(report["entries"])), 4.0),
+    ]
+    ok = True
+    for label, got, want in checks:
+        good = abs(got - want) < 1e-6
+        ok = ok and good
+        print(f"    {label:<14} got {got:>12,.3f}  want {want:>12,.3f}  "
+              f"{'OK' if good else 'MISMATCH'}")
+    # resolve by skill_category vs hit_skill_type + ambiguity guard
+    try:
+        summarize_rotation({"time": 1, "normal": [{"skill": "Basics"}]},
+                           {"normal": rows_normal})
+        print("    ambiguity guard  FAIL (harus raise)")
+        ok = False
+    except LookupError:
+        print("    ambiguity guard  OK (LookupError)")
+
+    # ---- item 5: base table Disorder/Polarity/Vortex (angka manual Excel) ----
+    base_checks = [
+        ("dis.Ice", disorder_base_pct("Ice", 10), 450 + 10 * 7.5),
+        ("dis.Physical", disorder_base_pct("Physical", 10), 450 + 10 * 7.5),
+        ("dis.Wind", disorder_base_pct("Wind", 10), 100.0),
+        ("dis.Fire", disorder_base_pct("Fire", 10), 450 + 20 * 50.0),
+        ("dis.Electric", disorder_base_pct("Electric", 10), 450 + 10 * 125.0),
+        ("dis.Ether", disorder_base_pct("Ether", 10), 450 + 20 * 62.5),
+        ("vor.Physical", vortex_base_pct("Physical", 10), 800 + 10 * 7.5),
+        ("vor.Wind", vortex_base_pct("Wind", 10), 0.0),
+        ("vor.Ice frost", vortex_base_pct("Ice", 10, True), 10 * 75.0),
+        ("vor.Ice", vortex_base_pct("Ice", 10, False), 1300 + 10 * 7.5),
+        ("vor.Fire", vortex_base_pct("Fire", 10), 900 + 20 * 7.5),
+        ("vor.Electric", vortex_base_pct("Electric", 10), 650 + 10 * 125.0),
+        ("vor.Ether", vortex_base_pct("Ether", 10), 650 + 20 * 62.5),
+        ("pol.M0", polarity_factor_for_mindscape(0), 0.15),
+        ("pol.M2", polarity_factor_for_mindscape(3), 0.5),
+        ("pol.M6", polarity_factor_for_mindscape(6), 0.8),
+    ]
+    for label, got, want in base_checks:
+        good = abs(got - want) < 1e-9
+        ok = ok and good
+        print(f"    {label:<14} got {got:>12,.3f}  want {want:>12,.3f}  "
+              f"{'OK' if good else 'MISMATCH'}")
+
+    # ---- item 5: compute_disorder_damage manual (ATK 1000, AP 100, Ice) ----
+    e5 = EnemyStats(def_val=571.68, res_pct={"Ice": 0.0})
+    d5 = compute_disorder_damage(
+        element="Ice", atk_combat=1000.0, anomaly_proficiency=100.0, enemy=e5,
+        remaining_duration_s=10.0)
+    want5 = 1000.0 * (525.0 / 100) * (794.0 / (794.0 + 571.68)) * 1.0 * 1.0 \
+        * (100.0 / 100) * 2.0 * 1.0 * 1.0 * 1.0
+    good = abs(d5["non_crit"] - want5) < 0.5
+    ok = ok and good
+    print(f"    disorder dmg  got {d5['non_crit']:>12,.3f}  want {want5:>12,.3f}  "
+          f"{'OK' if good else 'MISMATCH'}")
+
+    # ---- item 5: extra_rows (Disorder) masuk total + distribusi ----
+    extra = [_special_row("Disorder", "Disorder (Ice)", "Ice", "Disorder",
+                          1000.0, 2, "disorder", 525.0)]
+    rep2 = summarize_rotation({"time": 10, "normal": []},
+                              {"normal": [], "stun": []}, extra_rows=extra)
+    dist2 = {d["category"]: d["damage"] for d in rep2["distribution"]}
+    checks2 = [
+        ("extra.total", rep2["total"], 2000.0),
+        ("extra.disorder", dist2.get("Disorder", 0.0), 2000.0),
+    ]
+    for label, got, want in checks2:
+        good = abs(got - want) < 1e-6
+        ok = ok and good
+        print(f"    {label:<14} got {got:>12,.3f}  want {want:>12,.3f}  "
+              f"{'OK' if good else 'MISMATCH'}")
+    print(f"    ROTATION SELFTEST: {'PASS' if ok else 'FAIL'}")
+    return ok
 
 
 # ---------------------------------------------------------------------------
@@ -1428,4 +2252,7 @@ def run_calibration() -> bool:
 
 
 if __name__ == "__main__":
-    run_calibration()
+    ok = run_calibration()
+    print()
+    ok = run_rotation_selftest() and ok
+    raise SystemExit(0 if ok else 1)

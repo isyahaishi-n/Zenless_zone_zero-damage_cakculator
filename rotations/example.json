@@ -1,0 +1,60 @@
+{
+  "_comment": "Contoh file rotasi (item 7 + 5). Reference hit pakai hit_id (lihat `python run.py <uid> --list-hits`). Fase 'normal' tanpa Stun Modifier, fase 'stun' dengan enemy_stunned=True. total = hit x count x repeat x rotation_mult; DPS = total / time. Anomaly DoT (Burn/Shock/Corruption): count = jumlah tick; Assault/Shatter/Windswept = 1 aplikasi. Section 'disorder'/'polarity'/'vortex' menambah baris distribusi Disorder (tidak ada auto-deteksi - trigger harus eksplisit): disorder pakai {element, count, remaining_duration}, polarity tambahan {mindscape, skill_level, nagi_ap} (Yanagi), vortex {element, count, duration, is_frost} (butuh Wind + Physical/Ice di tim).",
+  "avatars": {
+    "1091": {
+      "name": "Miyabi basic + EX loop (contoh)",
+      "time": 20.0,
+      "rotation_mult": 1.0,
+      "normal": [
+        {"hit_id": 1091001, "count": 1},
+        {"hit_id": 1091002, "count": 1},
+        {"hit_id": 1091003, "count": 1},
+        {"hit_id": 1091004, "count": 1},
+        {"hit_id": 1091005, "count": 1},
+        {"hit_id": 1091027, "count": 1},
+        {"hit_id": 1091028, "count": 1},
+        {"hit_id": 1091029, "count": 1},
+        {"hit_id": 1091009, "count": 1},
+        {"hit_id": 1091010, "count": 1},
+        {"hit_id": 1091011, "count": 1},
+        {"hit_id": 1091012, "count": 1},
+        {"skill": "Anomaly", "hit": "Shatter (Ice)", "count": 1}
+      ],
+      "stun": [
+        {"hit_id": 1091015, "count": 1},
+        {"hit_id": 1091016, "count": 1},
+        {"hit_id": 1091017, "count": 1},
+        {"hit_id": 1091018, "count": 1}
+      ],
+      "disorder": [
+        {"element": "Ice", "count": 1, "remaining_duration": 10}
+      ],
+      "vortex": [
+        {"element": "Ice", "count": 1, "duration": 10, "is_frost": true}
+      ],
+      "normal_repeat": 1,
+      "stun_repeat": 1
+    },
+    "1371": {
+      "name": "Yixuan basic + EX loop (contoh)",
+      "time": 20.0,
+      "normal": [
+        {"hit_id": 1371001, "count": 1},
+        {"hit_id": 1371002, "count": 1},
+        {"hit_id": 1371003, "count": 1},
+        {"hit_id": 1371004, "count": 1},
+        {"hit_id": 1371009, "count": 1},
+        {"hit_id": 1371022, "count": 1},
+        {"skill": "Anomaly", "hit": "Corruption (Ether)", "count": 2}
+      ],
+      "stun": [
+        {"hit_id": 1371014, "count": 1}
+      ],
+      "disorder": [
+        {"element": "Ether", "count": 1, "remaining_duration": 10}
+      ],
+      "normal_repeat": 1,
+      "stun_repeat": 1
+    }
+  }
+}

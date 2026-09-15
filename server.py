@@ -215,7 +215,9 @@ def compute_all_damage_standalone(snapshot: dict, enemy, stunned: bool = False) 
     _last_toggles.extend(toggles)
     return [{
         "skill": r["skill_label"],
+        "skill_category": r.get("skill_category"),
         "hit": r["hit_name"],
+        "hit_id": r.get("hit_id"),
         "element": r["hit_element"],
         "damage_pct": r["damage_pct"],
         "daze_pct": r.get("daze_pct", 0.0),

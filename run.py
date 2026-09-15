@@ -15,6 +15,8 @@ field mapping verified terhadap Genshin-Optimizer/zzz-hakushin-data
 
 Usage:
     python run.py <uid> [--enemy "Tyrfing"] [--enemy-level 60] [--stunned]
+    python run.py <uid> --rotation rotations/example.json
+    python run.py <uid> --list-hits
 """
 
 import argparse
@@ -120,11 +122,30 @@ def compute_all_damage(snapshot: dict, enemy: dc.EnemyStats,
     return results
 
 
+def rotation_for_avatar(rotation_data, avatar_id: int):
+    """Pilih rotasi utk satu avatar.
+
+    Kalau file punya section `{"avatars": {"1091": {...}}}` -> ambil per id
+    (None kalau karakter nggak ada di file). Selain itu, file = rotasi tunggal
+    yang dicoba ke setiap karakter.
+    """
+    if isinstance(rotation_data, dict) and isinstance(rotation_data.get("avatars"), dict):
+        return rotation_data["avatars"].get(str(avatar_id))
+    return rotation_data
+
+
 # ---------------------------------------------------------------------------
 # main
 # ---------------------------------------------------------------------------
 
 def main():
+    # Nama hit dari data game bisa mengandung karakter Unicode (mis. U+2010
+    # hyphen) yang bikin console Windows cp1252 crash saat print.
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, ValueError):
+        pass
+
     parser = argparse.ArgumentParser(description="UID -> stat panel -> damage per skill")
     parser.add_argument("uid", help="UID Enka (atau path profile JSON lokal dengan --profile)")
     parser.add_argument("--profile", action="store_true",
@@ -138,6 +159,15 @@ def main():
     parser.add_argument("--stunned", action="store_true",
                         help="Musuh dalam kondisi stun (aktifkan Stun Modifier: "
                              "damage x (1 + StunDamageTaken musuh))")
+    parser.add_argument("--rotation", metavar="FILE",
+                        help="Evaluasi rotasi dari file JSON (lihat "
+                             "rotations/example.json). Fase normal + stun "
+                             "terpisah, output total damage/DPS/distribusi "
+                             "per kategori skill. Kalau file punya section "
+                             "'avatars' per id, rotasi dipilih per karakter.")
+    parser.add_argument("--list-hits", action="store_true",
+                        help="Tampilkan hit_id tiap hit (buat bikin file rotasi) "
+                             "lalu keluar tanpa tabel damage")
     parser.add_argument("--list-enemies", action="store_true",
                         help="Tampilkan daftar nama musuh yang tersedia lalu keluar")
     args = parser.parse_args()
@@ -185,6 +215,20 @@ def main():
     sets = dc.load_drive_disc_sets(str(base_dir / "data" / "mapped" / "drive_disc_mapped.json"))
     mindscapes = dc.load_mindscapes(str(base_dir / "data" / "mapped" / "mindscape_mapped.json"))
 
+    rotation_data = None
+    if args.rotation:
+        rp = Path(args.rotation)
+        if not rp.is_absolute():
+            rp = base_dir / rp
+        try:
+            rotation_data = json.loads(rp.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as e:
+            sys.exit(f"Error load rotation '{args.rotation}': {e}")
+        if args.stunned:
+            print("    Catatan: --stunned diabaikan saat --rotation "
+                  "(fase stun datang dari entry 'stun' di file rotasi).")
+        print(f"    Rotation: {args.rotation}")
+
     try:
         enemy = get_enemy_stats(args.enemy, level=args.enemy_level)
     except (ValueError, LookupError) as e:
@@ -218,6 +262,16 @@ def main():
             print("  (nggak ada weapon/skill data buat dihitung -- karakter tanpa gear?)")
             continue
 
+        if args.list_hits:
+            print(f"  -- Hit list ({len(damage_rows)}) --")
+            print(f"    {'hit_id':>10}  {'skill':20s} {'hit':35s} {'category':9s} dmg%")
+            for r in damage_rows:
+                hid = r.get("hit_id")
+                hid_s = str(hid) if hid is not None else "-"
+                print(f"    {hid_s:>10}  {r['skill_label']:20s} {r['hit_name']:35s} "
+                      f"{r.get('skill_category', ''):9s} {r['damage_pct']:8.1f}")
+            continue
+
         stun_note = " [STUNNED]" if args.stunned else ""
         print(f"  -- Damage vs {m['name']} Lv.{m['level']}{stun_note} --")
         for r in damage_rows:
@@ -243,6 +297,20 @@ def main():
                       f"{r['damage_pct']:7.1f}%  ->  non-crit {r['non_crit']:8.1f}  "
                       f"crit {r['crit']:8.1f}  exp {r.get('expected', r['non_crit']):8.1f}"
                       f"{extras}")
+
+        if rotation_data is not None:
+            rot = rotation_for_avatar(rotation_data, avatar_id)
+            if rot is None:
+                print("  (rotasi tidak punya entry buat karakter ini -- skip)")
+            else:
+                try:
+                    report, _ = dc.compute_rotation(
+                        snapshot, enemy, wengines, sets, mindscapes, rot)
+                except (LookupError, ValueError, IndexError) as e:
+                    print(f"  Rotation error: {e}")
+                else:
+                    print()
+                    print(dc.format_rotation_report(report))
 
 
 if __name__ == "__main__":

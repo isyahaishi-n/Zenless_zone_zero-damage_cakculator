@@ -4,6 +4,86 @@ Hasil audit formula Excel (`misc/[v3.1.0] okMuzzy's ZZZ Calculator.xlsx`,
 sheet `C1`/`BC1`–`C3` kolom P, `Anomaly Calcs`, `DPS Calcs`,
 `W-Engine Buffs`) vs `damage_calc.py`, 2026-09-14.
 
+## Selesai (2026-09-15 #4) — item 5
+
+- [x] **Item 5: Disorder / Polarity / Vortex** (okMuzzy 'Anomaly Calcs'
+      C65-C70 / C72-C91 / C122-C127, verbatim):
+  - `disorder_base_pct(element, remaining_duration_s)` — tabel base %
+    PERSIS Excel: Physical/Ice `450% + floor(t)×7.5%`, Wind `100%`,
+    Fire `450% + floor(t/0.5)×50%`, Electric `450% + floor(t)×125%`,
+    Ether `450% + floor(t/0.5)×62.5%`.
+  - `vortex_base_pct(element, duration_s, is_frost)` — C122-C127:
+    Physical `800% + t×7.5%`, Wind `0%`, Ice Miyabi(frost) `t×75%` /
+    selain itu `1300% + t×7.5%`, Fire `900% + (t/0.5)×7.5%`,
+    Electric `650% + t×125%`, Ether `650% + (t/0.5)×62.5%`.
+  - `compute_disorder_damage` / `compute_polarity_disorder_damage` /
+    `compute_vortex_damage`: chain sama dengan anomaly (ATK × DEFmult ×
+    RESmult(elem) × Stun × AP/100 × 2 × DMGTaken × DMG% bracket ×
+    Refringe) tapi TANPA bracket crit (C65-C70/C72-C91/C122-C127 tidak
+    punya CR×CD) → `crit` = `non_crit`.
+  - Bracket DMG%: disorder pakai `disorder_dmg_pct` (+ panel A4, default
+    0); vortex pakai elem DMG% panel + `anomaly_dmg_pct` + `vortex_dmg_pct`.
+  - Polarity (Yanagi): `POLARITY_FACTOR_BY_MINDSCAPE` M0 0.15 / M2+ 0.5 /
+    M6 0.8 + term `(725% + 225%×SkillLevel) × Σ NagiAP`; parameter
+    `polarity_nagi_ap`/`skill_level` + bucket `polarity_dmg_pct` siap
+    (belum ada sumber mapped).
+  - Bucket baru `vortex_dmg_pct` (drive disc `vortex_damage_percent` →
+    mapping; wengine "Vortex and Windswept +X%" masih damage_bonus generik
+    — kandidat remap item 6).
+  - **Integrasi rotasi**: section `disorder`/`polarity`/`vortex` di file
+    rotasi (eksplisit, TANPA auto-deteksi sesuai metodologi #5) →
+    `build_special_rows` + `summarize_rotation(extra_rows=...)` masuk
+    kategori distribusi "Disorder". `normalize_rotation` bawa key baru.
+  - Verifikasi: selftest 16 cek tabel base (disorder/vortex/polarity
+    factor) + `compute_disorder_damage` numerik manual (ATK 1000/AP 100/
+    Ice t=10 → 6,104.651) + extra_rows total/distribusi → PASS; kalibrasi
+    GT tetap PASS (0.025%/0.029%). Contoh `rotations/example.json`
+    (Miyabi Disorder+Vortex, Yixuan Disorder) jalan end-to-end.
+  - Catatan parity open: `C53` di formula Excel default = 1 (SUMIF U>0
+    fallback 1 saat sheet kosong) — kita tidak memodelkan faktor itu;
+    trigger disorder tidak dihitung otomatis dari buildup (0 sumber
+    mapped utk buildup-share multi-slot).
+
+## Selesai (2026-09-15 #3) — item 7
+
+- [x] **Item 7: Rotation & DPS output** (`normalize_rotation`,
+      `_resolve_rotation_ref`, `summarize_rotation`, `compute_rotation`,
+      `format_rotation_report` di `damage_calc.py`):
+  - Format JSON: `{name, time, rotation_mult, normal[], stun[],
+    normal_repeat, stun_repeat}`. Reference hit pakai `hit_id` (paling
+    robust, dari `hits[].hit_id`), atau `skill` (label / kategori /
+    hit_skill_type) + `hit` (nama) / `hit_index` (0-based). Referensi
+    ambigu/tidak ketemu → LookupError + daftar kandidat (bukan
+    diam-diam salah hit).
+  - Fase stun terpisah ala BC-style: `normal` tanpa Stun Modifier,
+    `stun` dengan `enemy_stunned=True` (StunTaken + Stun Multiplier
+    bucket). `compute_all_damage` dipanggil per fase (fase stun hanya
+    kalau ada entry `stun`).
+  - Total = Σ hit × count × repeat × rotation_mult; DPS = total/time.
+    Excel 'DPS Calcs': Rotation Time + Repeat X + Repeat stun X. Damage
+    pakai `expected` (CR-weighted) + total non-crit/crit. DoT
+    (Burn/Shock/Corruption) `count` = jumlah tick (C1!W10
+    Rounddown(Duration×rate)) — tick count tetap kerjaan input rotasi.
+  - Distribusi per kategori skill persis `CombinedRotationData`
+    C1!V3:V11 (Basics/Dashes/Assists/Specials/Others/Chains/Ultimate/
+    Anomaly/Disorder) → damage/daze/buildup + % share (kolom V-Z;
+    energy/decibel resource masih TODO).
+  - Row `compute_all_damage` sekarang bawa `hit_id`, `skill_key`,
+    `skill_category` (dipakai rotation + server API).
+  - **Bonus fix**: run.py crash `UnicodeEncodeError` (console Windows
+    cp1252) waktu nama hit Yixuan mengandung U+2010 hyphen — stdout
+    di-reconfigure utf-8/errors=replace. Ketemu lewat `--list-hits`.
+  - Selftest murni `run_rotation_selftest()` (angka manual: total
+    34,275, DPS 3,427.5, daze 70, buildup 42.5, distribusi Basics
+    1,275 / Specials 3,000 / Anomaly 30,000, ambiguity guard
+    LookupError) → PASS, jalan bareng `python damage_calc.py`.
+  - CLI: `run.py --rotation FILE` (mendukung section per-avatar
+    `{"avatars": {"1091": {...}}}` atau rotasi tunggal) + `--list-hits`
+    buat authoring. Contoh: `rotations/example.json` (Miyabi 1091 +
+    Yixuan 1371).
+  - Verifikasi: kalibrasi GT tetap PASS (0.025%/0.029%) + rotasi contoh
+    end-to-end (Miyabi DPS 58,147/s; Yixuan 77,930/s).
+
 ## Selesai (2026-09-15 #2) — item 3 + 4
 
 - [x] **Item 3: Buildup** (`compute_buildup`, C1!R3 verbatim):
@@ -157,15 +237,7 @@ tinggal pasang di snapshot hits + tampilan).
 Slot stat `anomaly_proficiency` panel terverifikasi benar
 (AP 238 → ×2.38 di Shatter numeric check 29099.0).
 
-## 5. Disorder / Polarity / Vortex (±1 hari)
-
-- [ ] Disorder DMG = f(2 elemen ter-trigger): formula di C1 baris
-      152+ & CombinedRotationData — perlu baca detail multiplier
-      disorder (Excel punya "Disorder Bonus" 250% Yanagi C1!F38,
-      "Expected Disorder Damage" E54 array).
-- [ ] Polarity Disorder (Yanagi M4) & Vortex (Wind+Physical/Ice) —
-      hitung dari tick count 2 anomaly di rotasi (butuh pipeline
-      rotasi dulu, item 7).
+## 5. ~~Disorder / Polarity / Vortex~~ — SELESAI 2026-09-15 #4 (lihat atas)
 
 ## 6. Team buffs + uptime (proyek mapping, MINGGUAN)
 
@@ -181,16 +253,7 @@ Excel: sheet `Team Buffs` (~1400 row) + uptime-weighted scaling
 - [ ] Buff enemy-side: DEFIncrease (buff DEF musuh udah ada bucket-nya),
       enemy_dmg_down (1 entry wengine) → mapping.
 
-## 7. Rotation & DPS output (±0.5 hari setelah team buffs)
-
-- [ ] Format rotasi: list [(skill_idx, hit_idx, count)] — Excel pakai
-      nama skill (QUERY starts-with); kita bisa pakai hit_id langsung
-      (lebih robust).
-- [ ] Total damage = Σ hit × count × rotation_mult; DPS = total/time.
-- [ ] Fase stun terpisah (BC-style): rotasi normal + rotasi stun
-      (enemy_stunned=True) + repeat ×N masing-masing.
-- [ ] CLI `run.py --rotation file.json` + output distribusi per skill
-      type (mirror CombinedRotationData kolom V–AA).
+## 7. ~~Rotation & DPS output~~ — SELESAI 2026-09-15 #3 (lihat atas)
 
 ## 8. Proc library per karakter (proyek mapping, MINGGUAN)
 
@@ -214,6 +277,10 @@ Sunna Cat's Gaze, Cissia Corrode Bone, Remielle Luminize, dll.
   dari dump formula Excel): final/direct mult, sheer MV/def-ignore,
   stun additive ratio, daze, impact combat, scope daze disc,
   threshold_stack sheer, GT kalibrasi PASS 0.025%/0.029%.
-- urutan kerja yang disarankan: ~~1 → 2 → 9 → 3 → 4 →~~ 7 → 5 → 6 → 8
-  (item 1, 2, 9 selesai 2026-09-15; item 3, 4 selesai 2026-09-15 #2).
+- Sanity check item 7 2026-09-15: `run_rotation_selftest()` di
+  `python damage_calc.py` (total/DPS/daze/buildup/distribusi/ambiguity)
+  PASS bareng kalibrasi GT.
+- urutan kerja yang disarankan: ~~1 → 2 → 9 → 3 → 4 → 7 → 5 →~~ 6 → 8
+  (item 1, 2, 9 selesai 2026-09-15; item 3, 4 selesai 2026-09-15 #2;
+  item 7 selesai #3; item 5 selesai #4).
   Regresi penuh S1-S13 + GT kalibrasi PASS setelah tiap item.
