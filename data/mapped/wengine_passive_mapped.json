@@ -685,7 +685,7 @@
         "needs_review": false,
         "effects": [
           {
-            "key": "anomaly_buildup_rate",
+            "key": "anomaly_mastery_flat",
             "effect_type": "stat",
             "condition": {
               "type": "toggle",
@@ -701,9 +701,10 @@
             "scales_with_phase": true,
             "evidence_p1": "Accumulating Anomaly Buildup increases the equipper's Anomaly Mastery by 25 for 10s.",
             "evidence_key_p1": "Weapon_TalentDes_81201001",
-            "stat": "Anomaly Buildup Rate",
+            "stat": "Anomaly Mastery",
             "unit": "flat",
-            "duration_seconds": 10.0
+            "duration_seconds": 10.0,
+            "needs_review": true
           }
         ],
         "phase_keys": [
@@ -754,7 +755,7 @@
         "needs_review": false,
         "effects": [
           {
-            "key": "anomaly_buildup_rate",
+            "key": "anomaly_proficiency_flat",
             "effect_type": "stat",
             "condition": {
               "type": "toggle",
@@ -770,9 +771,10 @@
             "scales_with_phase": true,
             "evidence_p1": "Accumulating Anomaly Buildup increases the equipper's Anomaly Proficiency by 25 for 10s.",
             "evidence_key_p1": "Weapon_TalentDes_81201101",
-            "stat": "Anomaly Buildup Rate",
+            "stat": "Anomaly Proficiency",
             "unit": "flat",
-            "duration_seconds": 10.0
+            "duration_seconds": 10.0,
+            "needs_review": true
           }
         ],
         "phase_keys": [

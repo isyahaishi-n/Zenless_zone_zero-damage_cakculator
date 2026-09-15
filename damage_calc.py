@@ -175,6 +175,14 @@ def _map_named_stat(stat: str, unit: str) -> str:
         "crit dmg": "crit_dmg_pct",
         "pen ratio": "pen_ratio_pct",
         "pen": "pen_flat",
+        # Impact: flat masuk bucket daze (Impact_combat = panel + flat adds,
+        # okMuzzy C1!B35), percent = buff daze-damage ala "Impact%" — keduanya
+        # DAZE-relevant, bukan damage-relevant.
+        "impact": "impact_flat" if u == "flat" else "impact_pct",
+        # Anomaly Buildup Rate (okMuzzy C1!R3 `SumIf "Buildup Rate"`): buff
+        # percent masuk bucket buildup; 'flat' (mis. +25 AM salah-map lama)
+        # tidak pernah valid utk buildup rate — biarkan passthrough.
+        "anomaly buildup rate": "buildup_rate_pct" if u == "percent" else f"anomaly_buildup_rate_{u or 'flat'}",
     }
     if s in explicit:
         return explicit[s]
@@ -190,6 +198,15 @@ _EFFECT_TYPE_TO_STAT = {
     "def_increase": "def_increase_pct",
     "res_ignore": "res_ignore_pct",
     "res_shred": "res_shred_pct",
+    # Daze final (okMuzzy C1!Q3): Daze = Impact_combat * dazeMV% * hit_count
+    # * (1 - Daze RES) * (1 + Σ Daze%) — scoped per skill.
+    "daze_bonus": "daze_pct",
+    # Sheer DMG final multiplier (okMuzzy C1!P3, hanya sheer agent):
+    # * (1 + Σ Sheer DMG + Σ {elem} SDMG).
+    "sheer_dmg_bonus": "sheer_dmg_pct",
+    # Stun Multiplier bucket (okMuzzy C1!P3): stack ADDITIF dengan
+    # stun_taken musuh di kurung (1 + StunMultiplier), jangan dikali sendiri.
+    "stun_dmg_mult": "stun_dmg_mult_pct",
 }
 
 # key efek drive-disc yang masuk formula (sisanya passthrough -> extra):
@@ -200,6 +217,16 @@ _DRIVE_FORMULA_KEYS = {
     "team_crit_dmg_percent": "crit_dmg_pct",  # team-wide, termasuk equipper
     "crit_rate_percent": "crit_rate_pct",
     "atk_percent": "atk_pct",
+    "sheer_damage_percent": "sheer_dmg_pct",
+    # Anomaly DMG buckets (okMuzzy Anomaly Calcs C58-C63):
+    # - "Anomaly DMG%" (generik, semua tipe: mis. Notes From the Chained
+    #   freeze_triggered 'all_attribute_anomaly_damage_percent' 16)
+    # - "{elem} anomaly DMG%" scoped elemen (Feathered Fate
+    #   'attribute_anomaly_damage_percent' 15)
+    # - Disorder DMG (item 5, bucket terpisah)
+    "all_attribute_anomaly_damage_percent": "anomaly_dmg_pct",
+    "attribute_anomaly_damage_percent": "anomaly_elem_dmg_pct",
+    "disorder_damage_percent": "disorder_dmg_pct",
 }
 
 # "{head}_damage_percent" -> damage_pct dengan scope:
@@ -222,6 +249,20 @@ def _map_drive_effect_key(k: str):
     """
     if k in _DRIVE_FORMULA_KEYS:
         return _DRIVE_FORMULA_KEYS[k], (), ()
+    m = re.match(r"(.+?)_daze_percent$", k)
+    if m:
+        # skill-scoped Daze% (mis. Shockstar Disco
+        # 'basic_dash_dodge_counter_daze_percent' = Basic/Dash/Dodge
+        # Counter) — coba kombinasi kata head yang diketahui, lalu per kata.
+        head = m.group(1)
+        stypes = set()
+        for word in _DRIVE_SKILL_WORDS:
+            # 'basic_attack' muncul sebagai token 'basic' (+ '_attack' opsional)
+            stem = word.split("_")[0]
+            if re.search(rf"(^|_){stem}(_|$)", head):
+                stypes.add(_DRIVE_SKILL_WORDS[word])
+        if stypes:
+            return "daze_pct", tuple(sorted(stypes)), ()
     m = re.match(r"(.+?)_damage_percent$", k)
     if m:
         head = m.group(1)
@@ -273,6 +314,16 @@ def _elements_of(eff: dict) -> tuple:
 _CONDITION_WORD_RE = re.compile(
     r"\b(when|while|upon|during|against|under|if)\b", re.IGNORECASE)
 
+# Semantik "set" (bukan tambah): "increases TO x% of the original" /
+# "is increased to 6%" — nilai buff core passive di-REPLACE, bukan
+# ditambah ke bucket. Kalau masuk formula additif = angka korup
+# (item 9 todo: Qingyi M2/Norma M2 stun_dmg_mult 135/6 terverifikasi
+# set-to semantics via evidence).
+_SET_TO_SEMANTICS_RE = re.compile(
+    r"(increases?|increased|raised) to \d"
+    r"|of the original",
+    re.IGNORECASE)
+
 
 def _mechanical_auto_enable(stat: str, scope: tuple, evidence: str) -> tuple:
     """Kebijakan auto-enable utk sumber ekstraksi mekanis (wengine/mindscape).
@@ -281,6 +332,13 @@ def _mechanical_auto_enable(stat: str, scope: tuple, evidence: str) -> tuple:
     if stat == "damage_pct" and not scope:
         return False, True
     if _CONDITION_WORD_RE.search(evidence or ""):
+        return False, True
+    # Semantik set-to ("increases to x% of the original") di effect_type yang
+    # sekarang masuk bucket formula: jangan auto-enable — nilai mereplace
+    # buff core passive, basisnya nggak diketahui pipeline kita.
+    if (stat in ("stun_dmg_mult_pct", "sheer_dmg_pct", "daze_pct",
+                 "damage_pct", "def_ignore_pct", "res_ignore_pct")
+            and _SET_TO_SEMANTICS_RE.search(evidence or "")):
         return False, True
     return True, False
 
@@ -539,6 +597,42 @@ class CombatModifiers:
     # dmg_reduction_pct (mis. musuh punya damage reduction).
     dmg_taken_pct: float = 0.0
     dmg_reduction_pct: float = 0.0
+    # ---- Bucket multiplier ekstra (okMuzzy v3.1.0 C1!P3) ----
+    # Final Multiplier: × (1 + Σ) — buff tipe "multiplier" scoped per skill
+    # (mis. Evelyn Chain/Ultimate +25%, Luminize). Sumber mapped: belum ada
+    # (Scaling Buffs, item 6) — slot siap.
+    final_mult_pct: float = 0.0
+    # Direct DMG: × (1 + Σ) — bucket terpisah dari damage_pct biasa.
+    # Sumber mapped: belum ada (satu-satunya di Excel = "Wind Infusion"
+    # team buff) — slot siap.
+    direct_dmg_pct: float = 0.0
+    # Sheer DMG (hanya sheer/Rupture agent): × (1 + Σ Sheer DMG + Σ{elem} SDMG)
+    sheer_dmg_pct: float = 0.0
+    # Stun Multiplier: stack ADDITIF dengan enemy.stun_taken_pct di kurung
+    # (1 + StunMultiplier) — okMuzzy C1!P3 `SUMIF("Stun Multiplier")`.
+    stun_dmg_mult_pct: float = 0.0
+    # ---- Daze final (okMuzzy C1!Q3) ----
+    # Σ Daze% (wengine daze_bonus + mindscape daze_bonus + disc Daze%).
+    daze_pct: float = 0.0
+    # Impact adds utk Impact_combat (C1!B35 = F19 + Σ"Impem"):
+    # flat (mis. Chief Sidekick +30) masuk sini; Impact% sudah jadi daze_pct
+    # ala Excel kolom "Impact%" -> kurung Daze? TIDAK — di Excel "Impact%"
+    # buff masuk F19 (Impact panel %). Kita treat impact_pct sebagai
+    # multiplier Impact: impact_combat = panel * (1 + impact_pct/100) + flat.
+    impact_flat: float = 0.0
+    impact_pct: float = 0.0
+    # ---- Buildup (okMuzzy C1!R3) ----
+    # Σ Anomaly Buildup Rate (wengine 'Anomaly Buildup Rate' percent —
+    # Peacekeeper/Roaring Ride/Timeweaver/Sharpened Stinger/Flight of
+    # Fancy; mindscape "Buildup ... increases by X%").
+    buildup_rate_pct: float = 0.0
+    # ---- Anomaly DMG per-tick (okMuzzy 'Anomaly Calcs' C58-C63) ----
+    # Σ "Anomaly DMG%" generik (mis. Notes From the Chained 16%) +
+    # A3 = elemental DMG% panel agent. Scoped anomaly-name ("Assault
+    # DMG%") belum ada sumber mapped — disc memakai bucket generik.
+    anomaly_dmg_pct: float = 0.0
+    # Disorder DMG (item 5) — bucket siap.
+    disorder_dmg_pct: float = 0.0
     extra: dict = field(default_factory=dict)
 
     def describe(self) -> str:
@@ -557,6 +651,16 @@ class CombatModifiers:
             ("RES shred%", self.res_shred_pct),
             ("DMG taken%", self.dmg_taken_pct),
             ("DMG reduction%", self.dmg_reduction_pct),
+            ("Final Multiplier%", self.final_mult_pct),
+            ("Direct DMG%", self.direct_dmg_pct),
+            ("Sheer DMG%", self.sheer_dmg_pct),
+            ("Stun Multiplier%", self.stun_dmg_mult_pct),
+            ("Daze%", self.daze_pct),
+            ("Impact flat+", self.impact_flat),
+            ("Impact%+", self.impact_pct),
+            ("Buildup Rate%", self.buildup_rate_pct),
+            ("Anomaly DMG%", self.anomaly_dmg_pct),
+            ("Disorder DMG%", self.disorder_dmg_pct),
         ]
         for name, v in simple:
             if v:
@@ -616,6 +720,28 @@ def aggregate_modifiers(toggles: list, skill_type: str = None,
             mods.dmg_taken_pct += v
         elif t.stat == "dmg_reduction_pct":
             mods.dmg_reduction_pct += v
+        elif t.stat == "final_mult_pct":
+            mods.final_mult_pct += v
+        elif t.stat == "direct_dmg_pct":
+            mods.direct_dmg_pct += v
+        elif t.stat == "sheer_dmg_pct":
+            mods.sheer_dmg_pct += v
+        elif t.stat == "stun_dmg_mult_pct":
+            mods.stun_dmg_mult_pct += v
+        elif t.stat == "daze_pct":
+            mods.daze_pct += v
+        elif t.stat == "impact_flat":
+            mods.impact_flat += v
+        elif t.stat == "impact_pct":
+            mods.impact_pct += v
+        elif t.stat == "buildup_rate_pct":
+            mods.buildup_rate_pct += v
+        elif t.stat == "anomaly_dmg_pct":
+            mods.anomaly_dmg_pct += v
+        elif t.stat == "anomaly_elem_dmg_pct":
+            mods.anomaly_dmg_pct += v  # scoped-elem version, elem diberikan caller
+        elif t.stat == "disorder_dmg_pct":
+            mods.disorder_dmg_pct += v
         else:
             mods.extra[t.stat] = mods.extra.get(t.stat, 0.0) + v
     return mods
@@ -643,6 +769,12 @@ class EnemyStats:
     # Dari MonsterSub LHPKLCOJKCN / StunDamageTakenRatio (Tyrfing 5000 -> 0.5,
     # The Defector 2500 -> 0.25). Boss umumnya lebih rendah.
     stun_taken_pct: float = 0.0
+    # Daze RES per elemen (fraksi, StunRes MonsterSub /10000) — dipakai
+    # compute_daze: Daze = Impact_combat * dazeMV% * (1 - Daze RES).
+    daze_res_pct: dict = field(default_factory=dict)
+    # Buildup RES per elemen (fraksi, BuildupRes MonsterSub /10000) —
+    # dipakai compute_buildup: (1 − Buildup RES elemen hit).
+    buildup_res_pct: dict = field(default_factory=dict)
 
 
 def load_level_factor_curve(path: str = "data/LevelCurveTemplateTb.json") -> dict:
@@ -714,6 +846,181 @@ def compute_res_mult(res_pct: float, res_ignore_pcts=(),
     return 1 - res
 
 
+def compute_daze(impact_combat: float, daze_mv_pct: float,
+                 daze_res_pct: float = 0.0,
+                 daze_bonus_pct: float = 0.0) -> float:
+    """Daze final (okMuzzy v3.1.0 C1!Q3, verbatim):
+
+        Daze = Impact_combat * dazeMV% * hit_count
+               * (1 - Σ Daze RES musuh)
+               * (1 + Σ Daze%)
+
+    - Impact_combat (C1!B35): Impact panel + flat adds, dengan Impact%
+      buff dikalikan (lihat compute_impact_combat).
+    - dazeMV%: daze_pct per hit (skill_lookup.compute_daze).
+    - Daze RES: StunRes musuh per elemen hit (MonsterSub /10000).
+    - Σ Daze%: bucket `daze_pct` (wengine/mindscape `daze_bonus`, disc
+      `*_daze_percent`) — scoped per skill via aggregate_modifiers.
+    hit_count = 1 per hit row (pipeline per-hit; rotasi nanti yang
+    mengalikan count).
+    """
+    return (impact_combat * (daze_mv_pct / 100)
+            * (1 - daze_res_pct)
+            * (1 + daze_bonus_pct / 100))
+
+
+def compute_impact_combat(impact_panel: float,
+                          mods: "CombatModifiers" = None) -> float:
+    """Impact_combat ala okMuzzy C1!B35: panel + Σ Impact flat adds.
+    (Buff 'Impact%' di Excel masuk ke stat panel section F19; kita model
+    sebagai multiplier di sini — hasil sama untuk satu sumber.)"""
+    mods = mods or CombatModifiers()
+    return (impact_panel * (1 + mods.impact_pct / 100)
+            + mods.impact_flat)
+
+
+def compute_buildup(buildup_base: float, anomaly_mastery_combat: float,
+                    buildup_rate_pct: float = 0.0,
+                    buildup_res_pct: float = 0.0) -> float:
+    """Buildup final (okMuzzy v3.1.0 C1!R3, verbatim):
+
+        Buildup = buildup_base * (AM_combat / 100)
+                  * (1 + Σ Buildup Rate + Σ {elem} Buildup Rate)
+                  * (1 - Σ Buildup RES musuh - Σ {elem} Buildup RES)
+
+    - buildup_base: nilai per hit dari skill_lookup.compute_buildup
+      (AvatarSkillTemplateTb PEHOFGPKJBN /100; VERIFIED 61/61 vs
+      zzz-hakushin-data 'AttributeInfliction' 2026-09-15).
+    - AM_combat: Anomaly Mastery combat stat (okMuzzy F22 — panel +
+      buffs AM%; unit %, mis. 116 -> 1.16x).
+    - Buildup Rate: bucket `buildup_rate_pct` (scoped per skill).
+    - Buildup RES: BuildupRes musuh per elemen (MonsterSub /10000).
+    hit_count = 1 per hit row (rotasi yang mengalikan count, E92).
+    """
+    return (buildup_base
+            * (anomaly_mastery_combat / 100)
+            * (1 + buildup_rate_pct / 100)
+            * (1 - buildup_res_pct))
+
+
+# Konstanta multiplier elemen anomaly (okMuzzy 'Anomaly Calcs' C58-C63,
+# di-copy PERSIS dari Excel 2026-09-15 — angka per TICK):
+#   Physical/Assault 713%, Wind/Windswept 1250%, Ice/Shatter 500%,
+#   Fire/Burn 50%, Electric/Shock 125%, Ether/Corruption 62.5%.
+# Nama label buff scope per elemen (dipakai FILTER "Assault DMG%" dst).
+ANOMALY_ELEM_MULT_PCT = {
+    "Physical": 713.0,   # Assault
+    "Wind": 1250.0,      # Windswept
+    "Ice": 500.0,        # Shatter
+    "Fire": 50.0,        # Burn (per tick)
+    "Electric": 125.0,   # Shock (per tick)
+    "Ether": 62.5,       # Corruption (per tick)
+}
+ANOMALY_LABEL = {
+    "Physical": "Assault",
+    "Wind": "Windswept",
+    "Ice": "Shatter",
+    "Fire": "Burn",
+    "Electric": "Shock",
+    "Ether": "Corruption",
+}
+
+
+def compute_anomaly_damage(
+    element: str,
+    atk_combat: float,
+    anomaly_proficiency: float,
+    enemy: EnemyStats,
+    mods: CombatModifiers = None,
+    attacker_level: int = 60,
+    level_factor_curve: dict | None = None,
+    enemy_stunned: bool = False,
+    elem_dmg_bonus_panel_pct: float = 0.0,
+    anomaly_crit_rate_pct: float = 0.0,
+    anomaly_crit_dmg_pct: float = 0.0,
+    refringe_coef_pct: float = 0.0,
+) -> dict:
+    """Anomaly DMG per-tick (okMuzzy v3.1.0 'Anomaly Calcs' C58-C63,
+    verbatim — semua konstanta diverifikasi ke Excel 2026-09-15):
+
+        AnomalyDMG_tick = {elem_mult}% x ATK_combat
+            x DEFmult (PEN diikutkan) x RESmult(elem)
+            x (1 + Σ Stun Multiplier)
+            x (AP_combat / 100) x 2 x (1 - DMGReduction)
+            x (1 + elemDMG%_panel + Σ Anomaly DMG%)
+            x (1 + CR_anomaly x CD_anomaly)
+            x (1 + Σ Refringe Coefficient)
+
+    - elem_mult: ANOMALY_ELEM_MULT_PCT (713% Assault, 1250% Windswept,
+      500% Shatter, 50% Burn, 125% Shock, 62.5% Corruption — PER TICK).
+    - ATK_combat: stat basis SEMUA tipe anomaly = ATK (C48 = panel +
+      flat adds); Catatan: todo lama "MV_stat per tipe" TIDAK benar —
+      Excel pakai ATK utk semua elemen (C48 dipakai C58-C63).
+    - x2: konstanta Excel (semua tipe) — bukan jumlah tick.
+    - CR/CD anomaly: crit khusus buff anomaly-scoped ("Assault Crit
+      Rate") — TODO lama bilang "hanya Assault", TAPI dump formula
+      C58-C63 nunjukin pola (1 + CR x CD) DI SEMUA ELEMEN. Panel CR/CD
+      character TIDAK ikut (hanya buff scoped anomaly).
+    - Tick count DoT (Burn/Shock/Corruption durasi) = kerjaan rotasi
+      (C1!W10 Rounddown(Duration x rate)) — bukan fungsi per-tick ini.
+    Return dict per-hit: {"non_crit", "crit", "tick_mult_pct", ...}.
+    """
+    mods = mods or CombatModifiers()
+    mult_pct = ANOMALY_ELEM_MULT_PCT[element]
+
+    def_mult = compute_def_mult(
+        enemy.def_val,
+        mods.pen_ratio_bonus_pct,
+        mods.pen_flat_bonus,
+        mods.def_ignore_pcts,
+        attacker_level=attacker_level,
+        level_factor_curve=level_factor_curve,
+        def_shred_pct=mods.def_shred_pct,
+        def_increase_pct=mods.def_increase_pct,
+    )
+    res_mult = compute_res_mult(
+        enemy.res_pct.get(element, 0.0),
+        mods.res_ignore_pcts,
+        mods.res_shred_pct,
+    )
+    # Stun Multiplier: additive di satu kurung (stun_taken + Σ bucket)
+    stun_mult = (1 + enemy.stun_taken_pct + mods.stun_dmg_mult_pct / 100
+                 ) if enemy_stunned else 1.0
+    # DMG Taken Modifier — paritas okMuzzy P3: (1 + DMGTaken%) linear
+    # DAN (1 - DMGReduction) linear (bukan 1/(1-x) versi wiki lama).
+    # Tidak ada sumber mapped yang pakai bucket ini (verified 0 match),
+    # jadi perubahan ini murni parity + tidak mengganggu kalibrasi.
+    dmg_taken_mult = ((1 + mods.dmg_taken_pct / 100)
+                      * (1 - mods.dmg_reduction_pct / 100))
+    # (1 + elemDMG% panel + Σ Anomaly DMG%)
+    anomaly_dmg_mult = (1 + (elem_dmg_bonus_panel_pct
+                             + mods.anomaly_dmg_pct) / 100)
+    # crit anomaly: hanya buff scoped anomaly (CR x CD, floor 0)
+    crit_mult = 1 + (anomaly_crit_rate_pct / 100) * (anomaly_crit_dmg_pct / 100)
+    refringe_mult = 1 + refringe_coef_pct / 100
+
+    non_crit = (atk_combat * (mult_pct / 100)
+                * def_mult * res_mult
+                * stun_mult
+                * (anomaly_proficiency / 100) * 2 * dmg_taken_mult
+                * anomaly_dmg_mult * refringe_mult)
+    crit = non_crit * crit_mult
+    return {
+        "element": element,
+        "anomaly_label": ANOMALY_LABEL[element],
+        "tick_mult_pct": mult_pct,
+        "def_mult": def_mult,
+        "res_mult": res_mult,
+        "stun_mult": stun_mult,
+        "dmg_taken_mult": dmg_taken_mult,
+        "anomaly_dmg_mult": anomaly_dmg_mult,
+        "crit_mult": crit_mult,
+        "refringe_mult": refringe_mult,
+        "non_crit": non_crit,
+        "crit": crit,
+    }
+
+
 def compute_final_damage(
     atk_panel: float,
     skill_mult_pct: float,
@@ -729,51 +1036,86 @@ def compute_final_damage(
     attacker_level: int = 60,
     level_factor_curve: dict | None = None,
     enemy_stunned: bool = False,
+    is_sheer_agent: bool = False,
+    hp_panel: float = 0.0,
+    sheer_force: float = 0.0,
 ) -> dict:
     """Formula lengkap: stat panel + combat modifiers -> non-crit & crit.
     `dmg_bonus_panel_pct` = elemental DMG bonus dari stat panel yang cocok
     dengan `element` (mis. Ice DMG +30% utk hit Ice) — caller yang milih.
 
     `enemy_stunned=True` mengaktifkan Stun Modifier (dmg * (1 +
-    enemy.stun_taken_pct)) — nilai StunDamageTakenRatio musuh, mis.
-    +50% Tyrfing/kebanyakan elite, +25% The Defector.
+    enemy.stun_taken_pct + Σ Stun Multiplier)) — nilai StunDamageTakenRatio
+    musuh + bucket `stun_dmg_mult_pct` (mindscape stun_dmg_mult), stack
+    ADDITIF dalam satu kurung (okMuzzy C1!P3, item 9 todo: jangan dikali).
     DMG Taken Modifier: (1 + dmg_taken%) / (1 - dmg_reduction%) — slot
     stat `dmg_taken_pct` / `dmg_reduction_pct` di CombatModifiers.
+
+    Sheer agent (`is_sheer_agent=True`, profession Rupture — flag C1!B33
+    "Sheer? YES" via Agent Data; verifikasi: Rupture ids 1051/1371/1441/
+    1471/1531 == Yidhari/Yixuan/Norano/BanYue/SPBilly == daftar sheer
+    agent Excel):
+    - MV_stat = ATK_combat*0.3 + HP_combat*0.1 + Sheer Force (C1!B34).
+      `hp_panel`/`sheer_force` dipass caller dari snapshot stats.
+    - DEFmult = 1 (hit Sheer ignore DEF, C1!P3 `IF(B33="YES", 1, ...)`).
+    - multiplier Sheer DMG aktif: × (1 + Σ Sheer DMG + Σ{elem} SDMG).
+      (Bucket sheer_dmg_pct agregasi keduanya; scope elemen tetap jalan.)
     """
     mods = mods or CombatModifiers()
 
     atk_combat = atk_panel * (1 + mods.atk_bonus_pct_cond / 100) + mods.atk_flat_cond
+    hp_combat = hp_panel  # tidak ada buff HP% kondisional di mapped files
+    skill_mult = skill_mult_pct + mods.skill_mult_bonus_pct
+    dmg_bonus = dmg_bonus_panel_pct + mods.damage_bonus_pct_cond
+    if is_sheer_agent:
+        # MV stat khusus sheer (C1!B34): 0.3*ATK + 0.1*HP + Sheer Force
+        mv_stat = atk_combat * 0.3 + hp_combat * 0.1 + sheer_force
+    else:
+        mv_stat = atk_combat
     # CRIT Rate/DMG floor game (okMuzzy v3.1.0: MIN(1, CR) & MAX(0.5, CD);
     # clamp CR 0-100 tetap): CR efektif minimal 5%, CD efektif minimal 50%.
     crit_rate_combat = min(max(crit_rate_panel_pct + mods.crit_rate_bonus_pct_cond, 5.0), 100.0)
     crit_dmg_combat = max(crit_dmg_panel_pct + mods.crit_dmg_bonus_pct_cond, 50.0)
-    skill_mult = skill_mult_pct + mods.skill_mult_bonus_pct
-    dmg_bonus = dmg_bonus_panel_pct + mods.damage_bonus_pct_cond
 
-    def_mult = compute_def_mult(
-        enemy.def_val,
-        pen_ratio_pct + mods.pen_ratio_bonus_pct,
-        pen_flat + mods.pen_flat_bonus,
-        mods.def_ignore_pcts,
-        attacker_level=attacker_level,
-        level_factor_curve=level_factor_curve,
-        def_shred_pct=mods.def_shred_pct,
-        def_increase_pct=mods.def_increase_pct,
-    )
+    if is_sheer_agent:
+        # hit Sheer ignore DEF sepenuhnya (C1!P3)
+        def_mult = 1.0
+    else:
+        def_mult = compute_def_mult(
+            enemy.def_val,
+            pen_ratio_pct + mods.pen_ratio_bonus_pct,
+            pen_flat + mods.pen_flat_bonus,
+            mods.def_ignore_pcts,
+            attacker_level=attacker_level,
+            level_factor_curve=level_factor_curve,
+            def_shred_pct=mods.def_shred_pct,
+            def_increase_pct=mods.def_increase_pct,
+        )
     res_mult = compute_res_mult(
         enemy.res_pct.get(element, 0.0),
         mods.res_ignore_pcts,
         mods.res_shred_pct,
     )
-    # Stun Modifier — hanya kalau musuh lagi stun
-    stun_mult = (1 + enemy.stun_taken_pct) if enemy_stunned else 1.0
-    # DMG Taken Modifier — efek nambah/ngurangin damage yang diterima musuh
+    # Stun Modifier — hanya kalau musuh lagi stun; Stun Multiplier bucket
+    # stack ADDITIF dengan stun_taken musuh (okMuzzy C1!P3, satu kurung).
+    stun_mult = (1 + enemy.stun_taken_pct + mods.stun_dmg_mult_pct / 100
+                 ) if enemy_stunned else 1.0
+    # DMG Taken Modifier — efek nambah/ngurangin damage yang diterima
+    # musuh. Paritas okMuzzy P3: (1 + DMGTaken%) x (1 - DMGReduction),
+    # dua-duanya LINEAR (P3 dump 2026-09-15 `(1 - DMGReduction)`; versi
+    # wiki lama 1/(1-x) diganti — 0 sumber mapped memakai bucket ini).
     dmg_taken_mult = ((1 + mods.dmg_taken_pct / 100)
-                      / (1 - mods.dmg_reduction_pct / 100))
+                      * (1 - mods.dmg_reduction_pct / 100))
+    # Multiplier ekstra (C1!P3, item 1 todo):
+    final_mult_mult = 1 + mods.final_mult_pct / 100
+    direct_dmg_mult = 1 + mods.direct_dmg_pct / 100
+    # Sheer DMG hanya utk sheer agent (C1!P3 IF B33=YES)
+    sheer_dmg_mult = (1 + mods.sheer_dmg_pct / 100) if is_sheer_agent else 1.0
 
-    non_crit = (atk_combat * (skill_mult / 100)
+    non_crit = (mv_stat * (skill_mult / 100)
                 * (1 + dmg_bonus / 100) * def_mult * res_mult
-                * stun_mult * dmg_taken_mult)
+                * stun_mult * dmg_taken_mult
+                * final_mult_mult * direct_dmg_mult * sheer_dmg_mult)
     crit = non_crit * (1 + crit_dmg_combat / 100)
 
     expected = non_crit * (1 - crit_rate_combat / 100
@@ -781,12 +1123,16 @@ def compute_final_damage(
 
     return {
         "atk_combat": atk_combat,
+        "mv_stat": mv_stat,
         "skill_mult_pct": skill_mult,
         "dmg_bonus_pct": dmg_bonus,
         "def_mult": def_mult,
         "res_mult": res_mult,
         "stun_mult": stun_mult,
         "dmg_taken_mult": dmg_taken_mult,
+        "final_mult_mult": final_mult_mult,
+        "direct_dmg_mult": direct_dmg_mult,
+        "sheer_dmg_mult": sheer_dmg_mult,
         "crit_rate_combat_pct": crit_rate_combat,
         "crit_dmg_combat_pct": crit_dmg_combat,
         "non_crit": non_crit,
@@ -844,6 +1190,17 @@ def compute_all_damage(snapshot: dict, enemy: "EnemyStats",
     if level_factor_curve is None:
         level_factor_curve = load_level_factor_curve()
 
+    # Sheer agent = profession "Rupture" (okMuzzy C1!B33 "Sheer?" via
+    # Agent Data; Rupture ids 1051/1371/1441/1471/1531 = Yidhari/Yixuan/
+    # Norano/BanYue/SPBilly — persis daftar sheer agent di Excel).
+    is_sheer = (snapshot.get("profession") == "Rupture")
+
+    # Impact_combat utk Daze (C1!B35) — dihitung sekali, pakai semua toggle
+    # enabled tanpa scope (buff Impact umumnya unscoped).
+    impact_mods = aggregate_modifiers(toggles, skill_type=None, element=None)
+    impact_combat = compute_impact_combat(
+        stats.get("Impact", 0.0), impact_mods)
+
     results = []
     for skill_idx, skill_data in snapshot.get("skills", {}).items():
         for hit in skill_data["hits"]:
@@ -870,7 +1227,26 @@ def compute_all_damage(snapshot: dict, enemy: "EnemyStats",
                 attacker_level=int(snapshot.get("level", 60)),
                 level_factor_curve=level_factor_curve,
                 enemy_stunned=enemy_stunned,
+                is_sheer_agent=is_sheer,
+                hp_panel=stats.get("HP", 0.0),
+                sheer_force=stats.get("Sheer Force", 0.0),
             )
+            # Daze final (C1!Q3) — per hit, scoped Daze% bucket + StunRes
+            # musuh per elemen hit.
+            daze_val = compute_daze(
+                impact_combat=impact_combat,
+                daze_mv_pct=hit.get("daze_pct", 0.0),
+                daze_res_pct=enemy.daze_res_pct.get(hit_element, 0.0),
+                daze_bonus_pct=mods.daze_pct,
+            ) if hit.get("daze_pct", 0.0) else 0.0
+            # Buildup final (C1!R3) — per hit (hanya hit dengan buildup > 0),
+            # scoped Buildup Rate bucket + BuildupRES musuh per elemen hit.
+            buildup_val = compute_buildup(
+                buildup_base=hit.get("buildup", 0.0),
+                anomaly_mastery_combat=stats.get("Anomaly Mastery", 0.0),
+                buildup_rate_pct=mods.buildup_rate_pct,
+                buildup_res_pct=enemy.buildup_res_pct.get(hit_element, 0.0),
+            ) if hit.get("buildup", 0.0) else 0.0
             results.append({
                 "skill_label": skill_data["label"],
                 "hit_name": hit["name"],
@@ -878,10 +1254,50 @@ def compute_all_damage(snapshot: dict, enemy: "EnemyStats",
                 "hit_skill_type": hit_skill_type,
                 "damage_pct": hit["damage_pct"],
                 "daze_pct": hit.get("daze_pct", 0.0),
+                "buildup_pct": hit.get("buildup", 0.0),
                 "non_crit": r["non_crit"],
                 "crit": r["crit"],
                 "expected": r["expected"],
+                "daze": daze_val,
+                "buildup": buildup_val,
             })
+    # Anomaly DMG per-tick (item 4): satu baris per elemen anomaly yang
+    # relevan — elemen karakter (+ "Frost" handling Frostburn? belum:
+    # Frost = Miyabi case, treat sbg Ice). AP = Anomaly Proficiency
+    # panel; ATK_combat pakai aggregate unscoped (kayak Impact).
+    agent_element = snapshot.get("element", "Physical")
+    anomaly_elements = [agent_element] if agent_element in ANOMALY_ELEM_MULT_PCT else []
+    # anomaly-scoped buffs: element-scoped toggles sudah masuk via aggregate
+    # (elements=('Physical',) dst); pakai scope (None, elemen anomaly).
+    for elem in anomaly_elements:
+        amods = aggregate_modifiers(toggles, skill_type=None, element=elem)
+        ar = compute_anomaly_damage(
+            element=elem,
+            atk_combat=stats["ATK"] * (1 + amods.atk_bonus_pct_cond / 100)
+                       + amods.atk_flat_cond,
+            anomaly_proficiency=stats.get("Anomaly Proficiency", 0.0),
+            enemy=enemy,
+            mods=amods,
+            attacker_level=int(snapshot.get("level", 60)),
+            level_factor_curve=level_factor_curve,
+            enemy_stunned=enemy_stunned,
+            elem_dmg_bonus_panel_pct=stats.get(f"{elem} DMG", 0.0),
+        )
+        results.append({
+            "skill_label": "Anomaly",
+            "hit_name": f"{ANOMALY_LABEL[elem]} ({elem})",
+            "hit_element": elem,
+            "hit_skill_type": "Anomaly",
+            "damage_pct": ANOMALY_ELEM_MULT_PCT[elem],
+            "daze_pct": 0.0,
+            "buildup_pct": 0.0,
+            "non_crit": ar["non_crit"],
+            "crit": ar["crit"],
+            "expected": ar["non_crit"],  # per-tick; expected = rotasi
+            "daze": 0.0,
+            "buildup": 0.0,
+            "anomaly_tick": True,
+        })
     return results, toggles
 
 

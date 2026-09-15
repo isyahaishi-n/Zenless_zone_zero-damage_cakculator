@@ -609,6 +609,7 @@ def compute_avatar_snapshot(
                 "name": name,
                 "damage_pct": r["damage_pct"],
                 "daze_pct": r["daze_pct"],
+                "buildup": r.get("buildup", 0.0),
                 "is_hidden": r["is_hidden"],
                 # skill type granular utk scope toggle ('Dash Attack' vs 'Dodge')
                 "skill_type": skill_type_of_hit(r["name"], skill_label),

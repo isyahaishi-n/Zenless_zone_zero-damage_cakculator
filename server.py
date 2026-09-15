@@ -150,7 +150,9 @@ def calculate_avatar(api_showcase: dict, avatar_id: int, enemy_name: str,
 
     m = db.resolve(enemy_name, level=enemy_level)  # LookupError kalau nama invalid
     enemy = dc.EnemyStats(def_val=m["def_val"], res_pct=m["res_pct"],
-                          stun_taken_pct=m["stun_taken_pct"])
+                          stun_taken_pct=m["stun_taken_pct"],
+                          daze_res_pct=m["daze_res_pct"],
+                          buildup_res_pct=m["buildup_res_pct"])
 
     snap = calc.compute_avatar_snapshot(
         avatar, avatar_id, ctx["avatars"], ctx["weapons"], ctx["equipments"],
@@ -221,6 +223,8 @@ def compute_all_damage_standalone(snapshot: dict, enemy, stunned: bool = False) 
         "crit": r["crit"],
         "expected": r.get("expected"),
         "stun_non_crit": r["non_crit"] * (1 + enemy.stun_taken_pct),
+        "daze": r.get("daze", 0.0),
+        "buildup": r.get("buildup", 0.0),
     } for r in rows]
 
 

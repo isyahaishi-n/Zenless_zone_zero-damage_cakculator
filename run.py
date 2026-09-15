@@ -96,6 +96,8 @@ def get_enemy_stats(enemy_key: str, level: int = 60) -> dc.EnemyStats:
         def_val=m["def_val"],
         res_pct=m["res_pct"],
         stun_taken_pct=m["stun_taken_pct"],
+        daze_res_pct=m["daze_res_pct"],
+        buildup_res_pct=m["buildup_res_pct"],
     )
 
 
@@ -220,15 +222,27 @@ def main():
         print(f"  -- Damage vs {m['name']} Lv.{m['level']}{stun_note} --")
         for r in damage_rows:
             # Daze-only hit (damage base 0, daze > 0 di skill data asli):
-            # tampilkan sebagai daze, bukan damage 0.0 yang menyesatkan.
-            if r["damage_pct"] <= 0 and r.get("daze_pct", 0) > 0:
+            # tampilkan daze final (Impact_combat x dazeMV% x (1-DazeRES)
+            # x (1+ΣDaze%)), bukan damage 0.0 yang menyesatkan.
+            if r.get("anomaly_tick"):
+                print(f"    {r['skill_label']:20s} {r['hit_name']:35s} [{r['hit_element']:8s}]"
+                      f"  per-tick {r['damage_pct']:6.1f}%  ->  non-crit {r['non_crit']:8.1f}"
+                      f"  (AP-scaled; tick count = rotasi)")
+            elif r["damage_pct"] <= 0 and r.get("daze_pct", 0) > 0:
                 print(f"    {r['skill_label']:20s} {r['hit_name']:35s} "
-                      f"(daze-only)  daze {r['daze_pct']:7.1f}%")
+                      f"(daze-only)  daze {r['daze_pct']:7.1f}%  "
+                      f"->  daze {r.get('daze', 0.0):8.1f}")
             else:
                 elem = r.get("hit_element") or snapshot.get("element", "?")
+                extras = ""
+                if r.get("daze_pct", 0) > 0:
+                    extras += f"  daze {r.get('daze', 0.0):7.1f}"
+                if r.get("buildup_pct", 0) > 0:
+                    extras += f"  buildup {r.get('buildup', 0.0):7.1f}"
                 print(f"    {r['skill_label']:20s} {r['hit_name']:35s} [{elem:8s}]"
                       f"{r['damage_pct']:7.1f}%  ->  non-crit {r['non_crit']:8.1f}  "
-                      f"crit {r['crit']:8.1f}  exp {r.get('expected', r['non_crit']):8.1f}")
+                      f"crit {r['crit']:8.1f}  exp {r.get('expected', r['non_crit']):8.1f}"
+                      f"{extras}")
 
 
 if __name__ == "__main__":

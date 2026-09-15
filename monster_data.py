@@ -64,7 +64,7 @@ BUILDUP_RES_FIELDS = {
     "Physical": "HEEFNBCGGGG",
     "Fire": "NFILPFLNIPC",
     "Ice": "DDMBIHOALHL",
-    "Electric": "BLNPNLJIDME",
+    "Electric": "BLNPNJIDME",   # 2x N — verifikasi key ada di 1792/1792 row
     "Ether": "PMGFNHIKHBD",
     "Wind": "JFABMBIMGNA",
 }
@@ -255,6 +255,12 @@ class MonsterDB:
         hp_lv = curve_value(self.curves, HP_CURVE_ID, level) / 100.0
 
         res_pct = {e: row[DAMAGE_RES_FIELDS[e]] / 10000.0 for e in ELEMENTS}
+        # Daze RES per elemen (StunRes fields — verifikasi sama kayak
+        # Damage/Buildup: game set ketiganya identik utk weakness).
+        daze_res_pct = {e: row[STUN_RES_FIELDS[e]] / 10000.0 for e in ELEMENTS}
+        # Buildup RES per elemen (BuildupRes fields) — anomaly buildup
+        # (C1!R3 `(1 − Buildup RES)`).
+        buildup_res_pct = {e: row[BUILDUP_RES_FIELDS[e]] / 10000.0 for e in ELEMENTS}
         codename = self._codename_by_cfg[config_ids[0]]
         icon_slug = self.resolve_icon_slug(codename)
         # Klasifikasi buat sort UI: size/rank/faction/rarity.
@@ -286,6 +292,8 @@ class MonsterDB:
             "def_val": row[DEF_FIELD] * def_lv,
             "hp_val": row[HP_FIELD] * hp_lv,
             "res_pct": res_pct,
+            "daze_res_pct": daze_res_pct,
+            "buildup_res_pct": buildup_res_pct,
             "stun_taken_pct": row[STUN_TAKEN_FIELD] / 10000.0,  # mis. 5000 -> +50% saat stun
         }
 

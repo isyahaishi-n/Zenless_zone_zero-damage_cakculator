@@ -233,9 +233,24 @@ def element_of_hit(hit_name: str, hit_element_map: tuple, hit_seq_index: int,
     return fallback
 
 
+def compute_buildup(row: dict) -> float:
+    """Buildup per hit = PEHOFGPKJBN (AttributeInfliction), in percent-unit
+    raw points (17247 -> 172.47; okMuzzy C1 kolom M 'Buildup' pakai nilai
+    yang sama dibagi 100).
+
+    VERIFIED 2026-09-15 via korelasi zzz-hakushin-data (aturan
+    docs/NEXT_STEPS.md): 61/61 row exact match (Anby 1011, Miyabi 1091,
+    Jane 1241) — PEHOFGPKJBN == 'AttributeInfliction', plus
+    AKFLKECDEPG == SpRecovery, NFCOCPMBCKO == FeverRecovery,
+    KEFHOIFIDBN == EtherPurify. Buildup TIDAK punya growth per level
+    (nilai tunggal, mirror kolom M Excel).
+    """
+    return row["PEHOFGPKJBN"] / 100
+
+
 def get_skill_multipliers(index: dict, avatar_id: int, skill_type: int, level: int) -> list:
-    """Returns a list of {hit_id, damage_pct, daze_pct} for every hit row
-    under this avatar's skill_type, at the given level.
+    """Returns a list of {hit_id, damage_pct, daze_pct, buildup} for every
+    hit row under this avatar's skill_type, at the given level.
 
     Baris dengan IKAABAIDFAO=0 DAN OMFJHOLBIKA=0 di-skip -- itu slot
     placeholder/nggak kepake (dikonfirmasi lewat Miyabi SkillType 3:
@@ -250,6 +265,7 @@ def get_skill_multipliers(index: dict, avatar_id: int, skill_type: int, level: i
             "hit_id": row["DALBKGGEJEF"],
             "damage_pct": compute_damage(row, level),
             "daze_pct": compute_daze(row, level),
+            "buildup": compute_buildup(row),
         })
     return results
 
@@ -410,6 +426,7 @@ def compute_damage_output(index: dict, avatar_id: int, skill_type: int, level: i
             "is_hidden": is_hidden,
             "damage_pct": m["damage_pct"],
             "daze_pct": m["daze_pct"],
+            "buildup": m.get("buildup", 0.0),
             "raw_damage": atk * m["damage_pct"] / 100,
         })
     return results
