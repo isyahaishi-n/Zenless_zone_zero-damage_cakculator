@@ -221,12 +221,14 @@ def compute_all_damage_standalone(snapshot: dict, enemy, stunned: bool = False) 
         "element": r["hit_element"],
         "damage_pct": r["damage_pct"],
         "daze_pct": r.get("daze_pct", 0.0),
+        "buildup_pct": r.get("buildup_pct", 0.0),
         "non_crit": r["non_crit"],
         "crit": r["crit"],
         "expected": r.get("expected"),
         "stun_non_crit": r["non_crit"] * (1 + enemy.stun_taken_pct),
         "daze": r.get("daze", 0.0),
         "buildup": r.get("buildup", 0.0),
+        "anomaly_tick": bool(r.get("anomaly_tick")),
     } for r in rows]
 
 

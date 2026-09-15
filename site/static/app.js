@@ -299,40 +299,74 @@ function renderCalcResult(r) {
       "No skill data to calculate (agent without gear?)."));
     return;
   }
+  const wrap = el("div", "calc-table-wrap");
   const table = el("table", "calc-table");
   table.innerHTML = `
     <thead><tr>
       <th>Skill</th><th>Hit</th><th class="num">Mult</th>
+      <th class="num">Daze</th><th class="num">Buildup</th>
       <th class="num">Non-Crit</th><th class="num">Crit</th>
+      <th class="num">Expected</th>
       <th class="num">${r.stunned ? "Non-Crit (stunned)" : "If Stunned"}</th>
     </tr></thead>`;
   const tbody = el("tbody");
   let lastSkill = null;
+  const skillCell = (row) => {
+    if (row.skill === lastSkill) return "";
+    const cat = row.skill_category
+    // empty cat tag string below
+      ? ` <span class="cat-tag">${esc("")}</span>` : "";
+    return `<b>${esc(row.skill)}</b>${cat}`;
+  };
   for (const row of r.rows) {
     const tr = el("tr");
     if (row.damage_pct <= 0 && row.daze_pct > 0) {
-      // daze-only hit
+      // daze-only hit (Defensive Assist parry dsb.)
       tr.className = "daze-row";
       tr.innerHTML = `
-        <td>${row.skill === lastSkill ? "" : esc(row.skill)}</td>
+        <td>${skillCell(row)}</td>
         <td>${esc(row.hit)}</td>
-        <td class="num" colspan="4">(daze-only) daze ${row.daze_pct.toFixed(1)}%</td>`;
+        <td class="num muted">—</td>
+        <td class="num">${fmtNum(row.daze)}</td>
+        <td class="num" colspan="5">(daze-only)</td>`;
+      lastSkill = row.skill;
+      tbody.appendChild(tr);
+      continue;
+    }
+    if (row.anomaly_tick) {
+      // Anomaly per-tick: nilai di bawah = per tick (AP-scaled);
+      // tick count tergantung rotasi.
+      tr.className = "anomaly-row";
+      tr.innerHTML = `
+        <td>${skillCell(row)}</td>
+        <td>${esc(row.hit)}</td>
+        <td class="num">${row.damage_pct.toFixed(1)}%<span class="per-tick">/tick</span></td>
+        <td class="num muted">—</td>
+        <td class="num muted">—</td>
+        <td class="num">${fmtNum(row.non_crit)}</td>
+        <td class="num">${fmtNum(row.crit)}</td>
+        <td class="num">${fmtNum(row.expected ?? row.non_crit)}</td>
+        <td class="num">${fmtNum(row.stun_non_crit)}</td>`;
       lastSkill = row.skill;
       tbody.appendChild(tr);
       continue;
     }
     tr.innerHTML = `
-      <td>${row.skill === lastSkill ? "" : `<b>${esc(row.skill)}</b>`}</td>
+      <td>${skillCell(row)}</td>
       <td>${esc(row.hit)}</td>
       <td class="num">${row.damage_pct.toFixed(1)}%</td>
+      <td class="num">${row.daze_pct > 0 ? fmtNum(row.daze) : "—"}</td>
+      <td class="num">${row.buildup_pct > 0 ? fmtNum(row.buildup) : "—"}</td>
       <td class="num">${fmtNum(row.non_crit)}</td>
       <td class="num crit">${fmtNum(row.crit)}</td>
+      <td class="num">${fmtNum(row.expected ?? row.non_crit)}</td>
       <td class="num">${fmtNum(row.stun_non_crit)}</td>`;
     lastSkill = row.skill;
     tbody.appendChild(tr);
   }
   table.appendChild(tbody);
-  body.appendChild(table);
+  wrap.appendChild(table);
+  body.appendChild(wrap);
 }
 
 /* ===================== helpers ===================== */
