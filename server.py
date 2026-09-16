@@ -637,14 +637,15 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main() -> None:
+    import os
     import sys
 
-    port = int(sys.argv[1]) if len(sys.argv) > 1 else 8787
+    port = int(sys.argv[1]) if len(sys.argv) > 1 else int(os.environ.get("PORT", 8787))
     CACHE_DIR.mkdir(exist_ok=True)
     print(f"ZZZ Showcase server running at http://localhost:{port}")
     print("Endpoints: /api/monsters, POST /api/calc, POST /api/rotation, POST /api/team-rotation, /img/monster/<slug>")
     print("Press Ctrl+C to stop.")
-    ThreadingHTTPServer(("127.0.0.1", port), Handler).serve_forever()
+    ThreadingHTTPServer(("0.0.0.0", port), Handler).serve_forever()
 
 
 if __name__ == "__main__":
