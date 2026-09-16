@@ -14,9 +14,23 @@ Endpoints:
                                    "stunned": false,
                                    "specials": {"disorder": [...],
                                                 "polarity": [...],
-                                                "vortex": [...]}}  # opsional
+                                                "vortex": [...]},  # opsional
+                                   "toggle_overrides": {toggle_id: bool}} # opsional
                             -> response nambah field `special` (baris
                                Disorder/Polarity/Vortex per instance, item 5)
+                               + `toggles[].id` (checkbox buff, item 12)
+  POST /api/rotation     -> hitung rotasi penuh (normal/stun + disorder/polarity/
+                            vortex) utk 1 karakter (item 7/10)
+                            body: {"showcase": ..., "avatar_id": 1091,
+                                   "enemy": "Tyrfing", "enemy_level": 60,
+                                   "rotation": {time, normal, stun, ...},
+                                   "toggle_overrides": {...}}  # opsional
+                            -> {report, toggles, avatar, enemy}
+  POST /api/team-rotation-> agregasi rotasi beberapa slot (item 11) — buff
+                            lintas-slot (item 6) BELUM termasuk
+                            body: {"showcase": ..., "enemy": "Tyrfing",
+                                   "rotations": {avatar_id: rotation, ...}}
+                            -> {total, dps, distribution, slots[], skipped[]}
   GET /img/monster/<slug>-> proxy monster card WebP dari static.nanoka.cc (disk-cached)
   GET /ui/zzz/<file>     -> proxies https://enka.network/ui/zzz/<file> (disk-cached)
 
@@ -141,16 +155,10 @@ def build_calc_context() -> dict:
     return ctx
 
 
-def calculate_avatar(api_showcase: dict, avatar_id: int, enemy_name: str,
-                     enemy_level: int = 60, stunned: bool = False,
-                     specials: dict | None = None) -> dict:
-    """Full pipeline untuk satu karakter dari showcase Enka -> JSON untuk UI.
-
-    `specials` opsional = {"disorder": [...], "polarity": [...], "vortex": [...]}
-    (item 5) — list spec per instance; hasilnya dikembalikan di field `special`
-    (per-instance, `total` = damage x count). Tanpa auto-deteksi: trigger harus
-    dikirim eksplisit oleh UI.
-    """
+def _prepare_avatar(api_showcase: dict, avatar_id: int, enemy_name: str,
+                    enemy_level: int):
+    """Resolve ctx + snapshot + enemy utk satu avatar (dipakai /api/calc &
+    /api/rotation). Return (ctx, dc, snap, enemy, monster)."""
     ctx = build_calc_context()
     calc, dc = ctx["calc"], ctx["dc"]
     db = ctx["monster_db"]
@@ -171,22 +179,45 @@ def calculate_avatar(api_showcase: dict, avatar_id: int, enemy_name: str,
         ctx["wl"], ctx["ws"], ctx["el"],
         ctx["skill_index"], ctx["name_map"], ctx["textmap"], ctx["locale"],
     )
-    rows = compute_all_damage_standalone(snap, enemy, stunned)
-    special_rows = _compute_special_rows(dc, snap, enemy, specials)
+    return ctx, dc, snap, enemy, m
 
-    # toggles aktif utk transparency UI
-    toggles = []
-    for t in _last_toggles:
-        toggles.append({
-            "source": t.source,
-            "source_name": t.source_name,
-            "stat": t.stat,
-            "value": t.value,
-            "unit": t.unit,
-            "condition": t.condition_text,
-            "enabled": bool(t.enabled),
-            "mode": t.mode,
-        })
+
+def _toggles_payload(dc, toggles: list) -> list:
+    """ToggleEntry -> JSON utk UI (termasuk `id` utk override item 12)."""
+    return [{
+        "id": dc.toggle_id(t),
+        "source": t.source,
+        "source_name": t.source_name,
+        "stat": t.stat,
+        "value": t.value,
+        "unit": t.unit,
+        "condition": t.condition_text,
+        "enabled": bool(t.enabled),
+        "mode": t.mode,
+        "skill_types": list(t.skill_types),
+        "elements": list(t.elements),
+        "stacks": t.stacks,
+        "stacks_max": t.stacks_max,
+        "needs_review": bool(t.needs_review),
+    } for t in toggles]
+
+
+def calculate_avatar(api_showcase: dict, avatar_id: int, enemy_name: str,
+                     enemy_level: int = 60, stunned: bool = False,
+                     specials: dict | None = None,
+                     toggle_overrides: dict | None = None) -> dict:
+    """Full pipeline untuk satu karakter dari showcase Enka -> JSON untuk UI.
+
+    `specials` opsional = {"disorder": [...], "polarity": [...], "vortex": [...]}
+    (item 5) — list spec per instance; hasilnya dikembalikan di field `special`
+    (per-instance, `total` = damage x count). Tanpa auto-deteksi: trigger harus
+    dikirim eksplisit oleh UI.
+    """
+    ctx, dc, snap, enemy, m = _prepare_avatar(
+        api_showcase, avatar_id, enemy_name, enemy_level)
+    rows = compute_all_damage_standalone(snap, enemy, stunned, toggle_overrides)
+    special_rows = _compute_special_rows(dc, snap, enemy, specials)
+    toggles = _toggles_payload(dc, _last_toggles)
 
     return {
         "avatar": {
@@ -261,12 +292,13 @@ def _compute_special_rows(dc, snapshot: dict, enemy, specials: dict | None) -> l
 _last_toggles = []
 
 
-def compute_all_damage_standalone(snapshot: dict, enemy, stunned: bool = False) -> list:
+def compute_all_damage_standalone(snapshot: dict, enemy, stunned: bool = False,
+                                  toggle_overrides: dict | None = None) -> list:
     ctx = build_calc_context()
     dc = ctx["dc"]
     rows, toggles = dc.compute_all_damage(
         snapshot, enemy, ctx["wengines"], ctx["sets"], ctx["mindscapes"],
-        enemy_stunned=stunned,
+        enemy_stunned=stunned, toggle_overrides=toggle_overrides,
     )
     _last_toggles.clear()
     _last_toggles.extend(toggles)
@@ -287,6 +319,123 @@ def compute_all_damage_standalone(snapshot: dict, enemy, stunned: bool = False) 
         "buildup": r.get("buildup", 0.0),
         "anomaly_tick": bool(r.get("anomaly_tick")),
     } for r in rows]
+
+
+def calculate_rotation(api_showcase: dict, avatar_id: int, enemy_name: str,
+                       rotation: dict, enemy_level: int = 60,
+                       toggle_overrides: dict | None = None) -> dict:
+    """Rotasi penuh (item 7) utk satu karakter -> report + toggles (item 10).
+
+    `rotation` = dict format `rotations/*.json` (time, normal/stun, repeat,
+    rotation_mult, disorder/polarity/vortex). Error resolusi hit
+    (`LookupError` dari normalize/resolve) dibiarkan naik -> HTTP 404/400.
+    """
+    ctx, dc, snap, enemy, _m = _prepare_avatar(
+        api_showcase, avatar_id, enemy_name, enemy_level)
+    report, toggles = dc.compute_rotation(
+        snap, enemy, ctx["wengines"], ctx["sets"], ctx["mindscapes"],
+        rotation, toggle_overrides=toggle_overrides)
+    report["avatar_id"] = avatar_id
+    report["toggles_enabled"] = sum(1 for t in toggles if t.enabled)
+    return {
+        "report": report,
+        "toggles": _toggles_payload(dc, toggles),
+        "avatar": {
+            "name": snap["name"], "level": snap["level"],
+            "element": snap["element"], "profession": snap["profession"],
+            "mindscape": snap["mindscape"], "core": snap.get("core", 0),
+        },
+        "enemy": {
+            "name": _m["name"], "level": _m["level"],
+            "def_val": _m["def_val"], "stun_taken_pct": _m["stun_taken_pct"],
+        },
+    }
+
+
+def calculate_team_rotation(api_showcase: dict, enemy_name: str,
+                            rotations: dict, enemy_level: int = 60,
+                            toggle_overrides: dict | None = None) -> dict:
+    """Agregasi rotasi beberapa slot (item 11) -> total/DPS/distribusi tim.
+
+    `rotations` = {avatar_id: rotation_dict} (format sama `rotations/*.json`,
+    key = avatar id string/int). Slot yang tidak ada di showcase di-skip
+    dengan catatan di `skipped`.
+
+    CATATAN: ini agregasi murni per-slot — buff LINTAS SLOT (Team Buffs,
+    item 6) belum dimodelkan, jadi angka tiap slot tidak saling
+    mempengaruhi.
+    """
+    if not isinstance(rotations, dict) or not rotations:
+        raise ValueError("body butuh 'rotations' (dict avatar_id -> rotation)")
+
+    ctx = build_calc_context()
+    dc = ctx["dc"]
+    per_slot = []
+    skipped = []
+    for aid_raw, rot in rotations.items():
+        try:
+            aid = int(aid_raw)
+        except (TypeError, ValueError):
+            skipped.append(str(aid_raw))
+            continue
+        try:
+            res = calculate_rotation(api_showcase, aid, enemy_name, rot or {},
+                                     enemy_level=enemy_level,
+                                     toggle_overrides=toggle_overrides)
+        except LookupError as e:
+            skipped.append({"avatar_id": aid, "reason": str(e)[:120]})
+            continue
+        rep = res["report"]
+        per_slot.append({
+            "avatar_id": aid,
+            "name": rep.get("avatar"),
+            "time": rep["time"],
+            "total": rep["total"],
+            "dps": rep["dps"],
+            "total_daze": rep["total_daze"],
+            "total_buildup": rep["total_buildup"],
+            "distribution": rep["distribution"],
+        })
+
+    if not per_slot:
+        raise ValueError("tidak ada slot valid untuk dihitung (cek 'rotations')")
+
+    team_time = max(s["time"] for s in per_slot) or 0.0
+    total = sum(s["total"] for s in per_slot)
+    total_daze = sum(s["total_daze"] for s in per_slot)
+    total_buildup = sum(s["total_buildup"] for s in per_slot)
+
+    agg = {}
+    for s in per_slot:
+        for d in s["distribution"]:
+            c = d["category"]
+            row = agg.setdefault(c, {"category": c, "damage": 0.0, "non_crit": 0.0,
+                                     "crit": 0.0, "daze": 0.0, "buildup": 0.0})
+            for k in ("damage", "non_crit", "crit", "daze", "buildup"):
+                row[k] += d.get(k, 0.0)
+
+    distribution = []
+    for c in dc.DISTRIBUTION_CATEGORIES:
+        row = agg.get(c)
+        if not row:
+            continue
+        row = dict(row)
+        row["pct"] = (row["damage"] / total * 100.0) if total else 0.0
+        distribution.append(row)
+
+    times = sorted({s["time"] for s in per_slot})
+    return {
+        "time": team_time,
+        "times": times,
+        "time_mismatch": len(times) > 1,
+        "total": total,
+        "dps": (total / team_time) if team_time else 0.0,
+        "total_daze": total_daze,
+        "total_buildup": total_buildup,
+        "distribution": distribution,
+        "slots": per_slot,
+        "skipped": skipped,
+    }
 
 
 def build_monster_list() -> list:
@@ -436,7 +585,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self) -> None:
         path = self.path.split("?")[0]
         try:
-            if path != "/api/calc":
+            if path not in ("/api/calc", "/api/rotation", "/api/team-rotation"):
                 self._send(404, b"Not found", "text/plain; charset=utf-8")
                 return
             length = int(self.headers.get("Content-Length", 0))
@@ -445,14 +594,34 @@ class Handler(BaseHTTPRequestHandler):
             avatar_id = payload.get("avatar_id")
             enemy = payload.get("enemy", "Tyrfing")
             enemy_level = int(payload.get("enemy_level", 60))
-            stunned = bool(payload.get("stunned", False))
-            specials = payload.get("specials") or None
-            if not showcase or avatar_id is None:
+            toggle_overrides = payload.get("toggle_overrides") or None
+            if not showcase or (avatar_id is None and path != "/api/team-rotation"):
                 self._send_json({"error": "body butuh 'showcase' dan 'avatar_id'"}, 400)
                 return
+            if path == "/api/team-rotation":
+                rotations = payload.get("rotations")
+                if not isinstance(rotations, dict):
+                    self._send_json({"error": "body butuh 'rotations' (dict)"}, 400)
+                    return
+                self._send_json(calculate_team_rotation(
+                    showcase, str(enemy), rotations,
+                    enemy_level=enemy_level, toggle_overrides=toggle_overrides))
+                return
+            if path == "/api/rotation":
+                rotation = payload.get("rotation")
+                if not isinstance(rotation, dict):
+                    self._send_json({"error": "body butuh 'rotation' (dict)"}, 400)
+                    return
+                self._send_json(calculate_rotation(
+                    showcase, int(avatar_id), str(enemy), rotation,
+                    enemy_level=enemy_level, toggle_overrides=toggle_overrides))
+                return
+            stunned = bool(payload.get("stunned", False))
+            specials = payload.get("specials") or None
             result = calculate_avatar(showcase, int(avatar_id), str(enemy),
                                        enemy_level=enemy_level, stunned=stunned,
-                                       specials=specials)
+                                       specials=specials,
+                                       toggle_overrides=toggle_overrides)
             self._send_json(result)
         except LookupError as e:
             self._send_json({"error": str(e)}, 404)
@@ -473,7 +642,7 @@ def main() -> None:
     port = int(sys.argv[1]) if len(sys.argv) > 1 else 8787
     CACHE_DIR.mkdir(exist_ok=True)
     print(f"ZZZ Showcase server running at http://localhost:{port}")
-    print("Endpoints: /api/monsters, POST /api/calc, /img/monster/<slug>")
+    print("Endpoints: /api/monsters, POST /api/calc, POST /api/rotation, POST /api/team-rotation, /img/monster/<slug>")
     print("Press Ctrl+C to stop.")
     ThreadingHTTPServer(("127.0.0.1", port), Handler).serve_forever()
 

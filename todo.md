@@ -53,7 +53,96 @@ sheet `C1`/`BC1`–`C3` kolom P, `Anomaly Calcs`, `DPS Calcs`,
     0 console error).
   - Catatan parity: `enemy_stunned` untuk disorder/vortex tetap `False`
     (sama dgn `build_special_rows`); refringe/base buff sumber belum ada
-    (default 0). Rotation builder menyusul.
+    (default 0). Rotation builder belum — lihat item 10.
+
+## Selesai (2026-09-16 #6) — fix mis-map DEF shred (Spectral Gaze)
+
+- [x] **`14136 Spectral Gaze`** ("When the equipper's Aftershock hits an
+      enemy, causing Electric DMG, the target's DEF is reduced by 25% for
+      5s") dulu ke-map `effect_type:"stat", stat:"DEF", unit:"percent"` ->
+      `def_percent` (player DEF%) -> inert. Sekarang `effect_type:"def_shred"`
+      (`def_shred_pct`, additive di `compute_def_mult`).
+- [x] Root cause di generator `scripts/wengine_passive_gen.py`: pattern
+      `stat_<DEF>` generik menang atas pattern spesifik `def_shred`
+      (`extract_sentence_effects` stable-sort, start/end sama -> yang lebih
+      dulu menang). `def_shred` dipindah ke SEBELUM loop STAT_FRAGMENTS.
+- [x] Scope: debuff ke MUSUH (`def_shred`, `enemy_dmg_down`) tidak lagi
+      dipasangi `skill_types`/`elements` sebagai filter — konstanta
+      `ENEMY_DEBUFF_NO_SCOPE`. Alasan: buff nempel di musuh, berlaku ke
+      semua damage selama durasi; scope di teks cuma pemicu.
+- [x] Mekanisme baru `default_enabled: true` di mapped entry -> `enabled=True`
+      di `ToggleEntry` (wengine/mindscape/set4pc). Mode "liatin hasil buff":
+      trigger game tidak dimodelkan, jadi buff dianggap aktif.
+- [x] Verifikasi: generator parse -> `def_shred` tanpa scope; `ToggleEntry`
+      `def_shred_pct=25` enabled; `aggregate_modifiers` -> `def_shred_pct=25`;
+      DEFmult Tyrfing 0.581395 -> 0.649351 (+11.688%); end-to-end lewat
+      server (equip 14136 di Miyabi, def_shred ON vs OFF) = **+11.86%**.
+      Kalibrasi GT tetap PASS (0.025%/0.029%) + rotation selftest PASS.
+
+## Selesai (2026-09-16 #7) — item 10 + 11(sebagian) + 12a
+
+- [x] **Item 10 — Rotation builder UI**:
+  - Backend: `server.calculate_rotation` + `POST /api/rotation`
+    (`{showcase, avatar_id, enemy, enemy_level, rotation, toggle_overrides}`)
+    → `{report, toggles, avatar, enemy}`; `dc.compute_rotation` sekarang
+    terima `toggle_overrides`.
+  - `_prepare_avatar` / `_toggles_payload` di server (dipakai
+    /api/calc + /api/rotation, hilangin duplikasi).
+  - UI `site/static/app.js`: panel `#calc-rotation` — param
+    time/rotation_mult/normal_repeat/stun_repeat, dua kolom fase
+    (normal/stun) dengan dropdown hit ber-`optgroup` per skill,
+    add/remove/count, tombol `Compute rotation`.
+  - Disorder/Polarity/Vortex panel item 5 dipakai ulang sebagai section
+    rotasi (`rotationPayload()` menyertakan `CALC.specials`).
+  - Laporan: grid total/DPS/non-crit/crit/daze/buildup/time + tabel
+    distribusi 9 kategori + tabel entry per hit (phase/skill/hit/count).
+  - Import/export JSON: tombol `JSON` (textarea + Copy/Load/Download),
+    format `rotations/*.json` (`{avatars: {id: rotation}}`); guard aturan
+    game (polarity Yanagi/Nangong Yu, vortex non-Wind) tetap dari item 5.
+  - Error resolusi hit dari `normalize_rotation` tampil sebagai pesan
+    error di panel (bukan cuma console).
+- [x] **Item 11 (agregasi)** — `server.calculate_team_rotation` +
+  `POST /api/team-rotation` → `{total, dps, distribution, slots, skipped}`;
+  UI section "Team" (textarea + "Isi dari rotasi ini" + "Compute team")
+  dengan tabel per-slot. Sisa (buff lintas-slot) menunggu item 6.
+- [x] **Item 12a — Buff toggle UI** — lihat detail di heading item 12.
+- Verifikasi: `calculate_rotation` (Miyabi 20s: total 1.354.629,6 /
+  DPS 67.731,5 / Disorder 14,2%), `calculate_team_rotation` (Miyabi+Yixuan
+  = 2.980.479,3 = jumlah kedua slot), Playwright end-to-end (rotation,
+  JSON Load ubah time 20→40, team compute) tanpa page error; kalibrasi GT
+  PASS (0.025%/0.029%) + rotation selftest PASS.
+
+## Selesai (2026-09-16 #8) — verifikasi #7 + default Buffs semua aktif
+
+- [x] **Verifikasi ulang #7** (dokumen vs kode vs angka, bukan asumsi):
+      simbol (`dc.toggle_id`/`apply_toggle_overrides`/`compute_rotation` +
+      `toggle_overrides`, `_prepare_avatar`/`_toggles_payload`, `/api/rotation`,
+      `/api/team-rotation`, `renderBuffPanel`) ada; kalibrasi GT PASS
+      (0,025%/0,029%) + rotation selftest PASS; HTTP: GT row `1085.7/2961.9`,
+      FC OFF via override → **969,4**, tanpa override → 1085,7;
+      `/api/rotation` Miyabi 20s = **1.354.629,6** / DPS **67.731,5** /
+      Disorder **14,2%**; `/api/team-rotation` = **2.980.479,3** = Σ slot;
+      slot invalid → `skipped` + reason; hit tak ter-resolve → 404 + daftar
+      kandidat. **Koreksi catatan lama**: `time` cuma mengubah DPS (total
+      tetap), jadi "JSON Load ubah time 20→40" itu uji UI, bukan uji total.
+- [x] **Default panel Buffs = SEMUA aktif** (permintaan user): `site/static/
+      app.js` — `openCalc` set `CALC.buffDefaultPending`, `renderCalcResult`
+      kirim override semua-`true` **sekali** lalu hitung ulang (angka lama
+      tidak dirender) dan simpan `CALC.toggles` supaya "Reset" = semua aktif.
+      SENGAJA tidak mengubah auto-enable di `damage_calc.py` (metodologi
+      `needs_review`/SET-semantics guard tetap utuh); baris `needs_review`
+      cuma 3 dari 32 toggle & tetap ada badge-nya. Verifikasi UI: Miyabi
+      **4/4 aktif** tanpa interaksi, uncheck Fusion Compiler → **3/4 aktif**
+      + GT **969**, Reset → **4/4** + GT **1.086**; Ye Shunguang **6/6**
+      (dulu 1/6); POST `/api/calc` = 2 saat buka (1 + 1 override, no loop);
+      0 console/page error.
+- **Catatan open (temuan verifikasi, bukan rumus):** baris `polarity` default
+  panel ikut ke payload rotasi — `rotationPayload()` tidak menerapkan
+  `specialKindBlocked`, jadi untuk agent non-Yanagi/Nangong Yu total rotasi
+  UI > angka API: Miyabi + `rotations/example.json` → UI **1.364.693** vs API
+  **1.354.630** (selisih = `Polarity Disorder (Ice)` 10.063,706). Formula
+  kedua jalur identik (delta 0,00%) → murni kebijakan inklusi. Keputusan
+  (gate di `rotationPayload()` vs tetap kirim + warning) belum diambil.
 
 ## Selesai (2026-09-15 #4) — item 5
 
@@ -318,6 +407,48 @@ Sunna Cat's Gaze, Cissia Corrode Bone, Remielle Luminize, dll.
 
 ## 9. ~~Review data mapped existing vs bucket formula baru~~ — SELESAI 2026-09-15 (lihat atas)
 
+## 10. ~~Rotation builder UI~~ — SELESAI 2026-09-16 #7 (lihat atas)
+
+## 11. Team rotation / slot aggregation (SEBAGIAN — sisa butuh #6)
+
+- [x] **Agregasi slot** (2026-09-16 #7): `server.calculate_team_rotation` +
+      `POST /api/team-rotation` (`{rotations: {avatar_id: rotation}}`) →
+      `{total, dps, distribution, slots[], skipped[]}`. UI: section "Team"
+      di panel Rotation (textarea JSON format `rotations/*.json`, tombol
+      "Isi dari rotasi ini" + "Compute team"), laporan total/DPS/tabel
+      per-slot/distribusi. Slot tak ada di showcase → masuk `skipped`.
+      DPS tim = total / `max(time)` slot; `time_mismatch` di-flag.
+- [ ] Buff lintas-slot (Team Buffs, item 6) + uptime-weighted ikut masuk
+      ke tiap slot — **belum**, karena item 6 (mapping `Team Buffs`) belum
+      ada. Tanpa itu tiap slot dihitung independen.
+
+## 12. Buff toggle UI (SELESAI #7) + proc scaling DEF (sisa)
+
+- [x] **Toggle UI** (2026-09-16 #7): `dc.toggle_id` / `apply_toggle_overrides`
+      + `compute_all_damage(toggle_overrides=...)` + `compute_rotation(...)`;
+      `POST /api/calc` terima `toggle_overrides` dan balikin `toggles[].id`.
+      UI: panel "Buffs" jadi daftar checkbox (semua toggle, bukan cuma yang
+      aktif) + "Reset". **Update #8**: default panel = SEMUA aktif
+      (`CALC.buffDefaultPending` → override semua-`true` sekali saat buka;
+      "Reset" = semua aktif) — sebelumnya cuma auto-enable yang terverifikasi
+      (mis. Ye Shunguang 1/6, Miyabi 2/4). Verifikasi: uncheck Fusion Compiler
+      → 969 dari 1.086; Reset → 1.086.
+- **Aftershock — SKIP/DITUNDA (keputusan 2026-09-16).** Aftershock BUKAN
+  kategori damage terpisah kayak Disorder: hit-nya sudah ada di skill
+  karakter dan MV/scaling-nya sudah ikut ke-hitung lewat row skill biasa
+  (mis. Trigger `Basic Attack: Harmonizing Shot`, `Chain Attack:
+  Suppressing Tiger Cauldron` — keduanya skill normal, bukan sintetis).
+  Jadi tidak perlu row/formula khusus. Sisa yang belum: 5 toggle ber-scope
+  `skill_types: ["Aftershock"]` (mis. Bellicose Blaze `def_ignore` Fire)
+  masih inert karena tidak ada hit ber-`hit_skill_type` "Aftershock" —
+  dampingannya `skill_category` fallback ke "Others". Tidak dikerjakan
+  sekarang (nyusul kalau perlu).
+- [ ] `13112 Big Cylinder` ("600% of the equipper's DEF as additional DMG")
+      ke-map `effect_type:"additional_dmg"` tanpa basis stat -> inert;
+      perlu dukungan proc scaling DEF (nyambung item 8). **Belum**:
+      butuh baris sintetis "additional DMG" (always-crit, basis DEF combat)
+      + masuk ke distribusi/rotasi → lebih pas dikerjakan bareng item 8.
+
 ## Catatan metode (aturan lama tetap berlaku)
 
 - Semua konstanta/field WAJIB diverifikasi ke sumber asli (Excel cell
@@ -332,6 +463,9 @@ Sunna Cat's Gaze, Cissia Corrode Bone, Remielle Luminize, dll.
   `python damage_calc.py` (total/DPS/daze/buildup/distribusi/ambiguity)
   PASS bareng kalibrasi GT.
 - urutan kerja yang disarankan: ~~1 → 2 → 9 → 3 → 4 → 7 → 5 →~~ 6 → 8
-  (item 1, 2, 9 selesai 2026-09-15; item 3, 4 selesai 2026-09-15 #2;
-  item 7 selesai #3; item 5 selesai #4).
+  → ~~10 →~~ 11 → 12 (item 1, 2, 9 selesai 2026-09-15; item 3, 4 selesai
+  2026-09-15 #2; item 7 selesai #3; item 5 selesai #4; fix DEF shred
+  Spectral Gaze selesai #6; item 10 + 11(agregasi) + 12(toggle UI) selesai
+  #7. Sisa: item 6 & 8 (mapping MINGGUAN), sisa item 11 (buff lintas-slot,
+  butuh 6), sisa item 12 (`13112 Big Cylinder`, bareng item 8)).
   Regresi penuh S1-S13 + GT kalibrasi PASS setelah tiap item.

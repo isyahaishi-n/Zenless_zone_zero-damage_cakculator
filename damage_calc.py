@@ -141,6 +141,28 @@ class ToggleEntry:
         return s
 
 
+def toggle_id(t) -> str:
+    """ID stabil per ToggleEntry utk override dari UI.
+
+    Dipakai server/UI buat nyalain-matiin buff conditional (item 12). Bentuk:
+    `source::source_name::key::stat` — unik karena `key` per effect berbeda
+    dalam satu sumber."""
+    return f"{t.source}::{t.source_name}::{t.key}::{t.stat}"
+
+
+def apply_toggle_overrides(toggles: list, overrides: dict | None) -> None:
+    """Mutasi `t.enabled` dari override UI `{toggle_id: bool}` (item 12).
+
+    Dipanggil SETELAH evaluate_thresholds supaya keputusan user menang di
+    atas auto-enable. Key tak dikenal diabaikan."""
+    if not overrides:
+        return
+    for t in toggles:
+        tid = toggle_id(t)
+        if tid in overrides:
+            t.enabled = bool(overrides[tid])
+
+
 def find_toggles(toggles: list, source: str = None, stat: str = None,
                  key: str = None, mode: str = None) -> list:
     """Filter toggle list by source/stat/key/mode (semua optional)."""
@@ -363,6 +385,11 @@ def _add_wengine_entry(entries: list, w: dict, p: dict, eff: dict, ph: int,
             eff.get("evidence_p1", ""))
     else:
         auto, review = False, False
+    # `default_enabled: true` = buff dianggap AKTIF saat hitung (mode "liatin
+    # hasil buff": trigger game-nya nggak dimodelkan, jadi user nggak bisa
+    # nyalain dari UI). Di-set manual di mapped file, bukan hasil ekstraksi.
+    if eff.get("default_enabled"):
+        auto, review = True, False
     cond_text = cond.get("label", "")
     key = eff.get("key", "")
     if n_variants > 1:
@@ -456,7 +483,7 @@ def build_set4pc_toggles(mapped: dict, set_name: str) -> list:
                 value=float(v),
                 unit="percent",
                 condition_text=cond,
-                enabled=(mode == "always"),
+                enabled=(mode == "always") or bool(eff.get("default_enabled")),
                 skill_types=stypes or tuple(
                     _DRIVE_SKILL_WORDS.get(sk, sk) for sk in eff.get("skills", [])
                 ),
@@ -501,6 +528,8 @@ def build_mindscape_toggles(mapped: dict, avatar_id: int, mindscape_rank: int = 
                     eff.get("evidence", ""))
             else:
                 auto, review = False, False
+            if eff.get("default_enabled"):
+                auto, review = True, False
             entries.append(ToggleEntry(
                 source="mindscape",
                 source_name=f"{a['name']} M{lvl_str} - {L.get('title', '')}",
@@ -1478,7 +1507,8 @@ def build_snapshot_toggles(snapshot: dict, wengines: dict, sets: dict,
 def compute_all_damage(snapshot: dict, enemy: "EnemyStats",
                        wengines: dict, sets: dict, mindscapes: dict,
                        enemy_stunned: bool = False,
-                       level_factor_curve: dict | None = None) -> tuple[list, list]:
+                       level_factor_curve: dict | None = None,
+                       toggle_overrides: dict | None = None) -> tuple[list, list]:
     """Hitung damage tiap hit non-hidden dari satu snapshot
     (compute_avatar_snapshot) — versi shared run.py & server.py.
 
@@ -1499,6 +1529,7 @@ def compute_all_damage(snapshot: dict, enemy: "EnemyStats",
     stats = snapshot["stats"]
     toggles = build_snapshot_toggles(snapshot, wengines, sets, mindscapes)
     evaluate_thresholds(toggles, panel=stats)  # mutasi t.enabled in-place
+    apply_toggle_overrides(toggles, toggle_overrides)  # override UI (item 12)
 
     if level_factor_curve is None:
         level_factor_curve = load_level_factor_curve()
@@ -1946,23 +1977,27 @@ def build_special_rows(snapshot: dict, enemy: "EnemyStats", toggles: list,
 
 def compute_rotation(snapshot: dict, enemy: "EnemyStats", wengines: dict,
                      sets: dict, mindscapes: dict, rotation,
-                     level_factor_curve: dict | None = None) -> tuple[dict, list]:
+                     level_factor_curve: dict | None = None,
+                     toggle_overrides: dict | None = None) -> tuple[dict, list]:
     """Hitung rotasi penuh utk satu snapshot: normal (tanpa stun) + fase stun
     (enemy_stunned=True, ala BC-style) -> laporan total + DPS + distribusi.
 
     Return (report, toggles). Rows dihitung sekali per fase; fase stun hanya
     dihitung kalau rotasi punya entry `stun`. Section `disorder`/`polarity`/
     `vortex` (item 5) menambah baris sintetis ke distribusi "Disorder".
+    `toggle_overrides` (item 12) = {toggle_id: bool} dari checkbox UI.
     """
     rot = normalize_rotation(rotation)
     rows_normal, toggles = compute_all_damage(
         snapshot, enemy, wengines, sets, mindscapes,
-        enemy_stunned=False, level_factor_curve=level_factor_curve)
+        enemy_stunned=False, level_factor_curve=level_factor_curve,
+        toggle_overrides=toggle_overrides)
     rows_stun = rows_normal
     if rot["stun"]:
         rows_stun, _ = compute_all_damage(
             snapshot, enemy, wengines, sets, mindscapes,
-            enemy_stunned=True, level_factor_curve=level_factor_curve)
+            enemy_stunned=True, level_factor_curve=level_factor_curve,
+            toggle_overrides=toggle_overrides)
     extra = build_special_rows(snapshot, enemy, toggles, rot, level_factor_curve)
     report = summarize_rotation(rot, {"normal": rows_normal, "stun": rows_stun},
                                 extra_rows=extra)

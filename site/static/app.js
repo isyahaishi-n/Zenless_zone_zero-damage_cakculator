@@ -108,6 +108,14 @@ const CALC = {
   current: null,           // {avatarId, name}
   enemy: { name: "Tyrfing", level: 60, stunned: false },
   specials: { disorder: [], polarity: [], vortex: [] }, // item 5 instances
+  toggleOverrides: {},     // item 12: {toggle_id: bool} dari checkbox buff
+  toggles: [],             // item 12: toggle terakhir (sumber "Reset = semua ON")
+  buffDefaultPending: false, // item 12: openCalc -> default panel Buffs semua ON
+  rotation: null,          // item 10: {time, rotation_mult, ...normal/stun[]}
+  rotationReport: null,    // laporan terakhir (biar gak hilang saat re-render)
+  rotationHits: [],        // row skill terakhir (sumber pilihan hit)
+  teamRotationsText: "",   // item 11: JSON {avatars: {...}} utk tim
+  teamReport: null,        // laporan tim terakhir
   agentElement: null,      // elemen karakter aktif (utk default/warning)
 };
 
@@ -227,6 +235,10 @@ async function openCalc(apiAvatar) {
   $("#calc-section").classList.remove("hidden");
   renderCalcTarget();
   CALC.specials = defaultSpecials();
+  CALC.toggleOverrides = {};
+  CALC.buffDefaultPending = true;   // panel Buffs default: SEMUA aktif (what-if)
+  CALC.rotation = defaultRotation();
+  CALC.rotationHits = [];
   renderSpecialPanel();
   $("#calc-body").innerHTML = `<div class="calc-loading">Calculating…</div>`;
   $("#calc-section").scrollIntoView({ behavior: "smooth", block: "start" });
@@ -241,6 +253,7 @@ function calcPayload() {
     enemy_level: CALC.enemy.level,
     stunned: CALC.enemy.stunned,
     specials: CALC.specials,
+    toggle_overrides: CALC.toggleOverrides,
   };
 }
 
@@ -367,7 +380,7 @@ function renderSpecialPanel() {
   panel.appendChild(grand);
 
   panel.appendChild(el("p", "special-hint",
-    "Formula item 5 (chain sama dgn rotasi). Trigger tidak di-auto-deteksi: pilih elemen & durasi manual. " +
+    "Formula item 5 (chain is the same as rotation). Trigger is not auto-detected: manually select element & duration." +
     "\u201cAgent element\u201d = elemen karakter."));
   box.appendChild(panel);
 }
@@ -545,8 +558,590 @@ function renderSpecialResults(results) {
   if (grandEl) grandEl.textContent = fmtNum(grand);
 }
 
+let _buffTimer = null;
+
+function renderBuffPanel(body, toggles) {
+  const wrap = el("div", "calc-buffs");
+
+  const nOn = toggles.filter((t) => t.enabled).length;
+  const head = el("div", "buff-head");
+  head.appendChild(el("span", "buff-label", "Buffs"));
+  head.appendChild(el("span", "buff-count", `${nOn}/${toggles.length} aktif`));
+  const reset = el("button", "buff-reset", "Reset");
+  reset.type = "button";
+  reset.title = "Balikin ke default: semua buff aktif";
+  reset.addEventListener("click", () => {
+    CALC.toggleOverrides = Object.fromEntries((CALC.toggles || []).map((t) => [t.id, true]));
+    runCalc();
+  });
+  head.appendChild(reset);
+  wrap.appendChild(head);
+
+  if (!toggles.length) {
+    wrap.appendChild(el("div", "buff-empty", "Tidak ada buff conditional."));
+    body.appendChild(wrap);
+    return;
+  }
+
+  const list = el("div", "buff-list");
+  const sorted = toggles.slice().sort((a, b) =>
+    (Number(b.enabled) - Number(a.enabled))
+    || (a.source_name || "").localeCompare(b.source_name || "")
+    || (a.stat || "").localeCompare(b.stat || ""));
+  for (const t of sorted) {
+    const row = el("label", "buff-row" + (t.enabled ? " on" : ""));
+    const cb = el("input");
+    cb.type = "checkbox";
+    cb.checked = !!t.enabled;
+    cb.dataset.tid = t.id;
+    cb.addEventListener("change", () => {
+      CALC.toggleOverrides[t.id] = cb.checked;
+      clearTimeout(_buffTimer);
+      _buffTimer = setTimeout(runCalc, 120);
+    });
+    row.appendChild(cb);
+
+    const main = el("div", "buff-main");
+    main.appendChild(el("span", "buff-name", esc(t.source_name)));
+    const val = `+${t.value}${t.unit === "percent" ? "%" : ""} ${t.stat}`;
+    main.appendChild(el("span", "buff-val", esc(val)));
+    const scope = [].concat(t.skill_types || [], t.elements || []);
+    const metaBits = [t.mode, scope.length ? scope.join("/") : null,
+                      t.needs_review ? "needs_review" : null].filter(Boolean);
+    if (metaBits.length) {
+      main.appendChild(el("span", "buff-meta", esc(metaBits.join(" · "))));
+    }
+    if (t.condition) main.appendChild(el("span", "buff-cond", esc(t.condition)));
+    row.appendChild(main);
+    list.appendChild(row);
+  }
+  wrap.appendChild(list);
+  body.appendChild(wrap);
+}
+
+/* ---- Rotation builder (item 10) ---- */
+
+function defaultRotation() {
+  return {
+    time: 20, rotation_mult: 1, normal_repeat: 1, stun_repeat: 1,
+    normal: [], stun: [],
+  };
+}
+
+function rotationPayload() {
+  const r = CALC.rotation || defaultRotation();
+  return {
+    time: r.time,
+    rotation_mult: r.rotation_mult,
+    normal_repeat: r.normal_repeat,
+    stun_repeat: r.stun_repeat,
+    normal: r.normal,
+    stun: r.stun,
+    disorder: CALC.specials.disorder,
+    polarity: CALC.specials.polarity,
+    vortex: CALC.specials.vortex,
+  };
+}
+
+function invalidateRotation() {
+  CALC.rotationReport = null;
+  const box = $("#calc-rotation-report");
+  if (box) box.innerHTML = "";
+}
+
+function rotHitLabel(row) {
+  return `${row.skill} — ${row.hit}`;
+}
+
+function rotationEntryLabel(entry) {
+  if (entry.hit_id != null) {
+    const hit = CALC.rotationHits.find((r) => r.hit_id === entry.hit_id);
+    if (hit) return rotHitLabel(hit);
+  }
+  return `${entry.skill || "?"} — ${entry.hit || "?"}`;
+}
+
+function buildHitSelect() {
+  const sel = el("select", "rot-select");
+  const bySkill = new Map();
+  CALC.rotationHits.forEach((row, i) => {
+    if (!bySkill.has(row.skill)) bySkill.set(row.skill, []);
+    bySkill.get(row.skill).push([i, row]);
+  });
+  for (const [skill, rows] of bySkill) {
+    const og = document.createElement("optgroup");
+    og.label = skill;
+    for (const [i, row] of rows) {
+      const o = el("option", "", row.hit);
+      o.value = String(i);
+      og.appendChild(o);
+    }
+    sel.appendChild(og);
+  }
+  return sel;
+}
+
+function rotNum(label, obj, key, min, max, step, onCommit) {
+  const inp = el("input", "sp-input rot-num");
+  inp.type = "number";
+  inp.min = min; inp.max = max; inp.step = step; inp.value = obj[key];
+  const commit = () => {
+    let n = parseFloat(inp.value);
+    if (!Number.isFinite(n)) n = min;
+    if (n < min) n = min;
+    if (n > max) n = max;
+    obj[key] = n;
+    if (onCommit) onCommit();
+  };
+  inp.addEventListener("change", commit);
+  const wrap = el("label", "rot-field");
+  wrap.appendChild(el("span", "rot-field-label", label));
+  wrap.appendChild(inp);
+  return wrap;
+}
+
+function renderRotationPanel() {
+  const box = $("#calc-rotation");
+  if (!box) return;
+  if (!CALC.rotation) CALC.rotation = defaultRotation();
+  box.innerHTML = "";
+  box.classList.remove("hidden");
+
+  const panel = el("div", "special-panel rot-panel");
+  const head = el("div", "special-head");
+  head.appendChild(el("h3", "", "Rotation"));
+  head.appendChild(el("span", "special-note", "pick hits from the skill table above"));
+  panel.appendChild(head);
+
+  const params = el("div", "rot-params");
+  params.appendChild(rotNum("Time (s)", CALC.rotation, "time", 0.1, 9999, 0.1, invalidateRotation));
+  params.appendChild(rotNum("Rotation mult", CALC.rotation, "rotation_mult", 0.01, 999, 0.05, invalidateRotation));
+  params.appendChild(rotNum("Normal repeat", CALC.rotation, "normal_repeat", 0, 999, 1, invalidateRotation));
+  params.appendChild(rotNum("Stun repeat", CALC.rotation, "stun_repeat", 0, 999, 1, invalidateRotation));
+  panel.appendChild(params);
+
+  const cols = el("div", "rot-cols");
+  cols.appendChild(buildRotationPhase("normal", "Normal (no stun)"));
+  cols.appendChild(buildRotationPhase("stun", "Stun phase"));
+  panel.appendChild(cols);
+
+  const actions = el("div", "rot-actions");
+  const btn = el("button", "rot-compute", "Compute rotation");
+  btn.type = "button";
+  btn.addEventListener("click", computeRotation);
+  actions.appendChild(btn);
+  const jsonBtn = el("button", "rot-add-btn", "JSON");
+  jsonBtn.type = "button";
+  jsonBtn.title = "Import/export rotation";
+  actions.appendChild(jsonBtn);
+  actions.appendChild(el("span", "rot-hint",
+    "Disorder / Polarity / Vortex from the panel above are included."));
+  panel.appendChild(actions);
+
+  const jsonBox = el("div", "rot-json hidden");
+  const ta = el("textarea", "rot-json-area");
+  ta.spellcheck = false;
+  jsonBox.appendChild(ta);
+  const jrow = el("div", "rot-json-actions");
+  const copyBtn = el("button", "rot-add-btn", "Copy");
+  copyBtn.type = "button";
+  copyBtn.addEventListener("click", () => {
+    ta.value = JSON.stringify(currentRotationJson(), null, 2);
+    ta.select();
+    try { document.execCommand("copy"); } catch (e) { /* ignore */ }
+    setRotJsonStatus("Copied to clipboard.");
+  });
+  const loadBtn = el("button", "rot-add-btn", "Load");
+  loadBtn.type = "button";
+  loadBtn.addEventListener("click", () => {
+    try {
+      loadRotationJson(ta.value);
+      setRotJsonStatus("Rotation loaded.");
+    } catch (e) {
+      setRotJsonStatus(e.message, true);
+    }
+  });
+  const dlBtn = el("button", "rot-add-btn", "Download");
+  dlBtn.type = "button";
+  dlBtn.addEventListener("click", () => {
+    const blob = new Blob([JSON.stringify(currentRotationJson(), null, 2)],
+      { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `rotation_${CALC.current ? CALC.current.avatarId : "avatar"}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+  jrow.appendChild(copyBtn);
+  jrow.appendChild(loadBtn);
+  jrow.appendChild(dlBtn);
+  jsonBox.appendChild(jrow);
+  jsonBox.appendChild(el("div", "rot-json-status"));
+  panel.appendChild(jsonBox);
+  jsonBtn.addEventListener("click", () => {
+    jsonBox.classList.toggle("hidden");
+    if (!jsonBox.classList.contains("hidden")) {
+      ta.value = JSON.stringify(currentRotationJson(), null, 2);
+      setRotJsonStatus("");
+    }
+  });
+
+  // ---- team aggregation (item 11) ----
+  const teamBox = el("div", "rot-team");
+  teamBox.appendChild(el("div", "rot-phase-title", "Team — slot aggregation"));
+  teamBox.appendChild(el("div", "rot-hint",
+    "Paste JSON in rotations/*.json format ({avatars: {id: rotation}}). "
+    + "Cross-slot buffs (item 6) not included yet."));
+  const tta = el("textarea", "rot-json-area rot-team-area");
+  tta.spellcheck = false;
+  tta.value = CALC.teamRotationsText || "";
+  tta.addEventListener("input", () => { CALC.teamRotationsText = tta.value; });
+  teamBox.appendChild(tta);
+  const trow = el("div", "rot-json-actions");
+  const tCompute = el("button", "rot-add-btn", "Compute team");
+  tCompute.type = "button";
+  tCompute.addEventListener("click", () => computeTeamRotation(tta.value));
+  trow.appendChild(tCompute);
+  const tFill = el("button", "rot-add-btn", "Fill from this rotation");
+  tFill.type = "button";
+  tFill.addEventListener("click", () => {
+    let base = {};
+    try { base = JSON.parse(tta.value || "{}"); } catch (e) { base = {}; }
+    base.avatars = base.avatars || {};
+    Object.assign(base.avatars, currentRotationJson().avatars);
+    tta.value = JSON.stringify(base, null, 2);
+    CALC.teamRotationsText = tta.value;
+    setRotTeamStatus("");
+  });
+  trow.appendChild(tFill);
+  teamBox.appendChild(trow);
+  teamBox.appendChild(el("div", "rot-json-status rot-team-status"));
+  teamBox.appendChild(el("div", "rot-team-report"));
+  panel.appendChild(teamBox);
+
+  const rep = el("div", "rot-report");
+  rep.id = "calc-rotation-report";
+  panel.appendChild(rep);
+  box.appendChild(panel);
+
+  if (CALC.rotationReport) renderRotationReport(CALC.rotationReport);
+  if (CALC.teamReport) renderTeamReport(CALC.teamReport);
+}
+
+function buildRotationPhase(kind, label) {
+  const col = el("div", "rot-phase");
+  const list = CALC.rotation[kind];
+  col.appendChild(el("div", "rot-phase-title", `${label} · ${list.length} entries`));
+
+  const entries = el("div", "rot-entries");
+  if (!list.length) entries.appendChild(el("div", "rot-empty", "No hits yet."));
+  list.forEach((entry, idx) => {
+    const row = el("div", "rot-entry");
+    row.appendChild(el("span", "rot-entry-name", esc(rotationEntryLabel(entry))));
+    const cnt = rotNum("x", entry, "count", 0, 9999, 1, invalidateRotation);
+    cnt.classList.add("rot-entry-count");
+    row.appendChild(cnt);
+    const del = el("button", "rot-del", "\u2715");
+    del.type = "button";
+    del.title = "Remove";
+    del.addEventListener("click", () => {
+      list.splice(idx, 1);
+      invalidateRotation();
+      renderRotationPanel();
+    });
+    row.appendChild(del);
+    entries.appendChild(row);
+  });
+  col.appendChild(entries);
+
+  const add = el("div", "rot-add");
+  if (CALC.rotationHits.length) {
+    const sel = buildHitSelect();
+    add.appendChild(sel);
+    const btn = el("button", "rot-add-btn", "+ Add");
+    btn.type = "button";
+    btn.addEventListener("click", () => {
+      const row = CALC.rotationHits[parseInt(sel.value, 10)];
+      if (!row) return;
+      list.push({ hit_id: row.hit_id ?? null, skill: row.skill, hit: row.hit, count: 1 });
+      invalidateRotation();
+      renderRotationPanel();
+    });
+    add.appendChild(btn);
+  } else {
+    add.appendChild(el("span", "rot-empty", "Skill table not ready yet."));
+  }
+  col.appendChild(add);
+  return col;
+}
+
+function setRotJsonStatus(msg, isErr) {
+  const box = document.querySelector(".rot-json-status");
+  if (!box) return;
+  box.textContent = msg || "";
+  box.classList.toggle("error", !!isErr);
+}
+
+function currentRotationJson() {
+  const r = CALC.rotation || defaultRotation();
+  const av = {
+    name: "UI rotation",
+    time: r.time,
+    rotation_mult: r.rotation_mult,
+    normal_repeat: r.normal_repeat,
+    stun_repeat: r.stun_repeat,
+    normal: r.normal,
+    stun: r.stun,
+  };
+  for (const k of SPECIAL_KIND_ORDER) {
+    if ((CALC.specials[k] || []).length) av[k] = CALC.specials[k];
+  }
+  const out = {};
+  out[String(CALC.current ? CALC.current.avatarId : "avatar")] = av;
+  return { avatars: out };
+}
+
+function loadRotationJson(text) {
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch (e) {
+    throw new Error(`JSON invalid: ${e.message}`);
+  }
+  const aid = String(CALC.current ? CALC.current.avatarId : "");
+  let av = data;
+  if (data && data.avatars && typeof data.avatars === "object") {
+    av = data.avatars[aid] || Object.values(data.avatars)[0];
+  }
+  if (!av || typeof av !== "object") throw new Error("Unrecognized rotation format.");
+  CALC.rotation = {
+    time: Number(av.time ?? 20),
+    rotation_mult: Number(av.rotation_mult ?? 1),
+    normal_repeat: Number(av.normal_repeat ?? av.repeat ?? 1),
+    stun_repeat: Number(av.stun_repeat ?? 1),
+    normal: Array.isArray(av.normal) ? av.normal : [],
+    stun: Array.isArray(av.stun) ? av.stun : [],
+  };
+  for (const k of SPECIAL_KIND_ORDER) {
+    if (Array.isArray(av[k])) {
+      CALC.specials[k] = av[k].map((s) => ({ ...defaultSpec(k), ...s }));
+    }
+  }
+  renderSpecialPanel();
+  invalidateRotation();
+  renderRotationPanel();
+}
+
+function setRotTeamStatus(msg, isErr) {
+  const box = document.querySelector(".rot-team-status");
+  if (!box) return;
+  box.textContent = msg || "";
+  box.classList.toggle("error", !!isErr);
+}
+
+async function computeTeamRotation(text) {
+  const box = document.querySelector(".rot-team-report");
+  if (!box || !CALC.current) return;
+  let rotations;
+  try {
+    const parsed = JSON.parse(text || "{}");
+    rotations = (parsed.avatars && typeof parsed.avatars === "object")
+      ? parsed.avatars : parsed;
+  } catch (e) {
+    box.innerHTML = `<div class="status error">JSON invalid: ${esc(e.message)}</div>`;
+    return;
+  }
+  if (!rotations || !Object.keys(rotations).length) {
+    box.innerHTML = `<div class="status error">No rotation yet — click "Fill from this rotation" first.</div>`;
+    return;
+  }
+  box.innerHTML = `<div class="calc-loading">Computing team…</div>`;
+  try {
+    const res = await fetch("/api/team-rotation", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        showcase,
+        enemy: CALC.enemy.name,
+        enemy_level: CALC.enemy.level,
+        rotations,
+        toggle_overrides: CALC.toggleOverrides,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    CALC.teamReport = data;
+    renderTeamReport(data);
+  } catch (e) {
+    CALC.teamReport = null;
+    box.innerHTML = `<div class="status error">${esc(e.message || "Team rotation failed")}</div>`;
+  }
+}
+
+function renderTeamReport(rep) {
+  const box = document.querySelector(".rot-team-report");
+  if (!box) return;
+  box.innerHTML = "";
+
+  const totals = el("div", "rot-totals");
+  const items = [
+    ["Team total", fmtNum(rep.total)],
+    ["Team DPS", `${fmtNum(rep.dps)}/s`],
+    ["Time", `${rep.time}s`],
+    ["Daze", fmtNum(rep.total_daze)],
+    ["Buildup", fmtNum(rep.total_buildup)],
+    ["Slots", String((rep.slots || []).length)],
+  ];
+  for (const [k, v] of items) {
+    const c = el("div", "rot-stat");
+    c.appendChild(el("span", "rot-stat-k", k));
+    c.appendChild(el("span", "rot-stat-v", v));
+    totals.appendChild(c);
+  }
+  box.appendChild(totals);
+
+  if (rep.time_mismatch) {
+    box.appendChild(el("div", "rot-hint",
+      `⚠ slot times differ (${(rep.times || []).join(", ")}) — DPS uses the largest time.`));
+  }
+  if ((rep.skipped || []).length) {
+    box.appendChild(el("div", "rot-hint",
+      `⚠ skipped slot(s): ${esc(JSON.stringify(rep.skipped)).slice(0, 200)}`));
+  }
+
+  const swrap = el("div", "calc-table-wrap");
+  const st = el("table", "calc-table rot-table");
+  st.innerHTML = `<thead><tr><th>Slot</th><th class="num">Damage</th>
+    <th class="num">DPS</th><th class="num">Daze</th><th class="num">Buildup</th></tr></thead>`;
+  const stb = el("tbody");
+  for (const s of rep.slots || []) {
+    const tr = el("tr");
+    tr.innerHTML = `<td><b>${esc(s.name || "")}</b> <span class="lvl">#${s.avatar_id}</span></td>
+      <td class="num">${fmtNum(s.total)}</td>
+      <td class="num">${fmtNum(s.dps)}/s</td>
+      <td class="num">${fmtNum(s.total_daze)}</td>
+      <td class="num">${fmtNum(s.total_buildup)}</td>`;
+    stb.appendChild(tr);
+  }
+  st.appendChild(stb);
+  swrap.appendChild(st);
+  box.appendChild(swrap);
+
+  const dwrap = el("div", "calc-table-wrap");
+  const dt = el("table", "calc-table rot-table");
+  dt.innerHTML = `<thead><tr><th>Source</th><th class="num">Damage</th>
+    <th class="num">%</th><th class="num">Daze</th><th class="num">Buildup</th></tr></thead>`;
+  const dtb = el("tbody");
+  for (const d of rep.distribution || []) {
+    const tr = el("tr");
+    tr.innerHTML = `<td><b>${esc(d.category)}</b></td>
+      <td class="num">${fmtNum(d.damage)}</td>
+      <td class="num">${d.pct.toFixed(1)}%</td>
+      <td class="num">${fmtNum(d.daze)}</td>
+      <td class="num">${fmtNum(d.buildup)}</td>`;
+    dtb.appendChild(tr);
+  }
+  dt.appendChild(dtb);
+  dwrap.appendChild(dt);
+  box.appendChild(dwrap);
+}
+
+async function computeRotation() {
+  const box = $("#calc-rotation-report");
+  if (!box || !CALC.current) return;
+  box.innerHTML = `<div class="calc-loading">Computing rotation…</div>`;
+  try {
+    const res = await fetch("/api/rotation", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...calcPayload(), rotation: rotationPayload() }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    CALC.rotationReport = data.report;
+    renderRotationReport(data.report);
+  } catch (e) {
+    CALC.rotationReport = null;
+    box.innerHTML = `<div class="status error">${esc(e.message || "Rotation failed")}</div>`;
+  }
+}
+
+function renderRotationReport(rep) {
+  const box = $("#calc-rotation-report");
+  if (!box) return;
+  box.innerHTML = "";
+
+  const totals = el("div", "rot-totals");
+  const items = [
+    ["Total", fmtNum(rep.total)],
+    ["DPS", `${fmtNum(rep.dps)}/s`],
+    ["Non-crit", fmtNum(rep.total_non_crit)],
+    ["Crit", fmtNum(rep.total_crit)],
+    ["Daze", fmtNum(rep.total_daze)],
+    ["Buildup", fmtNum(rep.total_buildup)],
+    ["Time", `${rep.time}s`],
+  ];
+  for (const [k, v] of items) {
+    const c = el("div", "rot-stat");
+    c.appendChild(el("span", "rot-stat-k", k));
+    c.appendChild(el("span", "rot-stat-v", v));
+    totals.appendChild(c);
+  }
+  box.appendChild(totals);
+
+  const dwrap = el("div", "calc-table-wrap");
+  const dt = el("table", "calc-table rot-table");
+  dt.innerHTML = `<thead><tr><th>Source</th><th class="num">Damage</th>
+    <th class="num">%</th><th class="num">Daze</th><th class="num">Buildup</th></tr></thead>`;
+  const dtb = el("tbody");
+  for (const d of rep.distribution || []) {
+    const tr = el("tr");
+    tr.innerHTML = `<td><b>${esc(d.category)}</b></td>
+      <td class="num">${fmtNum(d.damage)}</td>
+      <td class="num">${d.pct.toFixed(1)}%</td>
+      <td class="num">${fmtNum(d.daze)}</td>
+      <td class="num">${fmtNum(d.buildup)}</td>`;
+    dtb.appendChild(tr);
+  }
+  dt.appendChild(dtb);
+  dwrap.appendChild(dt);
+  box.appendChild(dwrap);
+
+  const ewrap = el("div", "calc-table-wrap rot-entries-wrap");
+  const et = el("table", "calc-table rot-table");
+  et.innerHTML = `<thead><tr><th>Phase</th><th>Skill</th><th>Hit</th>
+    <th class="num">Count</th><th class="num">Damage</th></tr></thead>`;
+  const etb = el("tbody");
+  for (const e of rep.entries || []) {
+    const tr = el("tr");
+    tr.innerHTML = `<td>${esc(e.phase)}</td><td>${esc(e.skill ?? "")}</td>
+      <td>${esc(e.hit ?? "")}</td>
+      <td class="num">${e.count}</td>
+      <td class="num">${fmtNum(e.damage)}</td>`;
+    etb.appendChild(tr);
+  }
+  et.appendChild(etb);
+  ewrap.appendChild(et);
+  box.appendChild(ewrap);
+}
+
 function renderCalcResult(r) {
   const body = $("#calc-body");
+
+  // Buffs (item 12) — default panel = SEMUA buff aktif ("liatin hasil buff";
+  // trigger combat tidak dimodelkan). Server cuma auto-enable yang terverifikasi,
+  // jadi kalau masih ada yang OFF: kirim override semua-ON SEKALI lalu hitung
+  // ulang, dan JANGAN render angka lama (biar gak kedip angka beda).
+  CALC.toggles = r.toggles || [];
+  if (CALC.buffDefaultPending && CALC.toggles.length) {
+    CALC.buffDefaultPending = false;
+    if (CALC.toggles.some((t) => !t.enabled)) {
+      CALC.toggleOverrides = Object.fromEntries(CALC.toggles.map((t) => [t.id, true]));
+      runCalc();
+      return;
+    }
+  }
+
   body.innerHTML = "";
   if (r.avatar) CALC.agentElement = r.avatar.element || CALC.agentElement;
 
@@ -574,17 +1169,12 @@ function renderCalcResult(r) {
   strip.appendChild(info);
   body.appendChild(strip);
 
-  // active buffs (toggles)
-  const active = (r.toggles || []).filter((t) => t.enabled);
-  if (active.length) {
-    const buffs = el("div", "calc-buffs");
-    buffs.appendChild(el("span", "buff-label", "Active buffs:"));
-    for (const t of active) {
-      buffs.appendChild(el("span", "buff-chip",
-        `${esc(t.source_name)} <b>+${t.value}${t.unit === "percent" ? "%" : ""} ${esc(t.stat)}</b>`));
-    }
-    body.appendChild(buffs);
-  }
+  // buffs (toggles) — checkbox enable/disable (item 12)
+  renderBuffPanel(body, r.toggles || []);
+
+  // rotation builder (item 10) — sumber pilihan hit = row skill terakhir
+  CALC.rotationHits = r.rows || [];
+  renderRotationPanel();
 
   // damage table
   if (Array.isArray(r.special)) {
@@ -1292,6 +1882,7 @@ async function loadShowcase(url) {
   $("#player").classList.add("hidden");
   $("#calc-section").classList.add("hidden");
   $("#calc-special").classList.add("hidden");
+  $("#calc-rotation").classList.add("hidden");
   CALC.current = null;
   showResults();
   try {
@@ -1341,6 +1932,7 @@ async function boot() {
   $("#calc-close").addEventListener("click", () => {
     $("#calc-section").classList.add("hidden");
     $("#calc-special").classList.add("hidden");
+    $("#calc-rotation").classList.add("hidden");
     clearTimeout(_specialTimer);
     CALC.current = null;
   });

@@ -6637,8 +6637,8 @@
         "needs_review": false,
         "effects": [
           {
-            "key": "def",
-            "effect_type": "stat",
+            "key": "def_shred",
+            "effect_type": "def_shred",
             "condition": {
               "type": "toggle",
               "label": "When the equipper's Aftershock hits an enemy"
@@ -6653,15 +6653,10 @@
             "scales_with_phase": true,
             "evidence_p1": "When the equipper's Aftershock hits an enemy, causing Electric DMG, the target's DEF is reduced by 25% for 5s.",
             "evidence_key_p1": "Weapon_TalentDes_81413601",
-            "stat": "DEF",
             "unit": "percent",
-            "elements": [
-              "Electric"
-            ],
-            "skill_types": [
-              "Aftershock"
-            ],
-            "duration_seconds": 5.0
+            "duration_seconds": 5.0,
+            "default_enabled": true,
+            "scope_note": "Enemy DEF debuff (-25% DEF, 5s) -> berlaku ke SEMUA damage, bukan cuma hit Electric/Aftershock. Scope trigger (Aftershock) tidak dimodelkan; toggle saja."
           },
           {
             "key": "impact",

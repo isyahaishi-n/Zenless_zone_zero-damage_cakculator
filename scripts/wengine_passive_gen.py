@@ -188,6 +188,11 @@ SKILL_TYPES = [
     "Assist Follow-Up", "Aftershock", "Quick Assist", "Perfect Assist",
 ]
 
+# Tipe efek yang men-debuff MUSUH (bukan hit pemilik) -> scope skill/element
+# tidak dipasang sebagai filter, karena buff berlaku ke semua damage selama
+# durasinya. Scope di teks cuma pemicu, bukan pembatas damage.
+ENEMY_DEBUFF_NO_SCOPE = frozenset({"def_shred", "enemy_dmg_down"})
+
 # (display name, regex fragment) — urutan = prioritas match
 STAT_FRAGMENTS = [
     ("Max HP", r"Max\s+HP"),
@@ -278,6 +283,14 @@ def _patterns():
         re.compile(r"(?P<val>" + NUM + r")\s*%\s*less\s+Miasma"),
         lambda m, s: {"effect_type": "miasma_reduction", "unit": "percent"})
 
+    # DEF shred ("target's DEF is reduced by 25%"). WAJIB dicek SEBELUM
+    # pattern stat generik di bawah: "DEF ... by 25%" juga match
+    # `stat_DEF`, dan `extract_sentence_effects` memenangkan pattern yang
+    # lebih dulu (stable sort, start/end sama) -> dulu ke-map jadi
+    # stat DEF% (player DEF) dan inert.
+    add("def_shred",
+        re.compile(r"DEF\s+is\s+reduced\s+by\s*(?P<val>" + NUM + r")\s*%"),
+        lambda m, s: {"effect_type": "def_shred", "unit": "percent"})
     # stat up: "<stat> ... by N[%|/s]"
     for stat, frag in STAT_FRAGMENTS:
         rx = re.compile(
@@ -342,10 +355,8 @@ def _patterns():
         re.compile(r"ignor(?:e|es|ing)\s*(?P<val>" + NUM + r")\s*%\s*of[^,.;]{0,50}?\bRES"),
         lambda m, s: {"effect_type": "res_ignore", "element": None,
                       "unit": "percent"})
-    # DEF shred ("target's DEF is reduced by 25%")
-    add("def_shred",
-        re.compile(r"DEF\s+is\s+reduced\s+by\s*(?P<val>" + NUM + r")\s*%"),
-        lambda m, s: {"effect_type": "def_shred", "unit": "percent"})
+    # DEF shred ("target's DEF is reduced by 25%") — dipindah ke atas,
+    # sebelum pattern stat generik (lihat komentar di sana).
     # energy gain flat
     add("energy_flat",
         re.compile(r"(?:generates?|gains?)\s*(?P<val>" + NUM + r")\s*Energy"),
@@ -489,6 +500,13 @@ def parse_weapon(texts_by_phase: dict):
             if k != "effect_type":
                 effect[k] = v
         elem, skills = detect_scope(sent1)
+        # Debuff yang nempel ke MUSUH (mis. "target's DEF is reduced by 25%")
+        # berlaku ke SEMUA damage selama durasinya, bukan cuma hit dengan
+        # skill/element pemicu. Scope trigger (Aftershock/Electric) tidak
+        # dimodelkan di calc -> kalau dipasang sebagai filter, buff jadi
+        # inert. Jadi skip scope khusus untuk tipe ini.
+        if effect["effect_type"] in ENEMY_DEBUFF_NO_SCOPE:
+            elem, skills = [], []
         if elem:
             effect["elements"] = elem
         if skills:
