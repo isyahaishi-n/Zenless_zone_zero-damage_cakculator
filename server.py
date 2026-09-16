@@ -642,7 +642,7 @@ def main() -> None:
 
     port = int(sys.argv[1]) if len(sys.argv) > 1 else int(os.environ.get("PORT", 8787))
     CACHE_DIR.mkdir(exist_ok=True)
-    print(f"ZZZ Showcase server running at http://localhost:{port}")
+    print(f"ZZZ Showcase server running at http://0.0.0.0:{port}")
     print("Endpoints: /api/monsters, POST /api/calc, POST /api/rotation, POST /api/team-rotation, /img/monster/<slug>")
     print("Press Ctrl+C to stop.")
     ThreadingHTTPServer(("0.0.0.0", port), Handler).serve_forever()
