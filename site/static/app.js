@@ -107,6 +107,8 @@ const CALC = {
   monsters: [],            // cached /api/monsters
   current: null,           // {avatarId, name}
   enemy: { name: "Tyrfing", level: 60, stunned: false },
+  specials: { disorder: [], polarity: [], vortex: [] }, // item 5 instances
+  agentElement: null,      // elemen karakter aktif (utk default/warning)
 };
 
 function monsterIconUrl(mon) {
@@ -224,9 +226,22 @@ async function openCalc(apiAvatar) {
   $("#calc-title").textContent = `Damage — ${name} Lv.${apiAvatar.Level}`;
   $("#calc-section").classList.remove("hidden");
   renderCalcTarget();
+  CALC.specials = defaultSpecials();
+  renderSpecialPanel();
   $("#calc-body").innerHTML = `<div class="calc-loading">Calculating…</div>`;
   $("#calc-section").scrollIntoView({ behavior: "smooth", block: "start" });
   await runCalc();
+}
+
+function calcPayload() {
+  return {
+    showcase,
+    avatar_id: CALC.current.avatarId,
+    enemy: CALC.enemy.name,
+    enemy_level: CALC.enemy.level,
+    stunned: CALC.enemy.stunned,
+    specials: CALC.specials,
+  };
 }
 
 async function runCalc() {
@@ -237,13 +252,7 @@ async function runCalc() {
     const res = await fetch("/api/calc", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        showcase,
-        avatar_id: CALC.current.avatarId,
-        enemy: CALC.enemy.name,
-        enemy_level: CALC.enemy.level,
-        stunned: CALC.enemy.stunned,
-      }),
+      body: JSON.stringify(calcPayload()),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
@@ -253,9 +262,293 @@ async function runCalc() {
   }
 }
 
+/* ---- Disorder / Polarity / Vortex (item 5) ---- */
+
+const SPECIAL_KINDS = {
+  disorder: { label: "Disorder" },
+  polarity: { label: "Polarity Disorder" },
+  vortex: { label: "Vortex" },
+};
+const SPECIAL_KIND_ORDER = ["disorder", "polarity", "vortex"];
+const SPECIAL_ELEMENTS = ["Physical", "Fire", "Ice", "Electric", "Ether", "Wind"];
+
+// Polarity Disorder cuma bisa dipicu Tsukishiro Yanagi (1221) &
+// Nangong Yu (1511) — agent lain tidak bisa trigger (nilai n/a).
+const POLARITY_AGENTS = new Set([1221, 1511]);
+// Aturan elemen (wiki): Disorder = anomaly lain meng-override anomaly yang
+// ada (elemen sama cuma refresh, TIDAK trigger). Vortex = Windswept (Wind)
+// + anomaly lain, jadi baris Wind = 0.
+const SPECIAL_NOTES = {
+  disorder: "Elements = the overwritten anomaly (usually the character's element). The triggering element must be DIFFERENT — same element only refreshes, it doesn't trigger Disorder.",
+  polarity: "Only Tsukishiro Yanagi / Nangong Yu can trigger Polarity Disorder.",
+  vortex: "Requires Windswept (Wind) + another anomaly. Element = non-Wind anomaly; selecting Wind = 0 (does not trigger).",
+};
+
+function specialKindBlocked(kind) {
+  if (kind === "polarity") return !POLARITY_AGENTS.has(CALC.current && CALC.current.avatarId);
+  return false;
+}
+
+function defaultSpec(kind) {
+  if (kind === "polarity") {
+    return { element: "", count: 1, remaining_duration: 10, skill_level: 0, nagi_ap: 0 };
+  }
+  if (kind === "vortex") return { element: "", count: 1, duration: 10, is_frost: false };
+  return { element: "", count: 1, remaining_duration: 10 };
+}
+
+function defaultSpecials() {
+  return {
+    disorder: [defaultSpec("disorder")],
+    polarity: [defaultSpec("polarity")],
+    vortex: [defaultSpec("vortex")],
+  };
+}
+
+let _specialTimer = null;
+function specialChanged() {
+  setSpecialStatus("");
+  clearTimeout(_specialTimer);
+  _specialTimer = setTimeout(refreshSpecial, 250);
+}
+
+function setSpecialStatus(msg, isErr) {
+  const box = document.querySelector(".special-status");
+  if (!box) return;
+  if (!msg) { box.classList.add("hidden"); box.textContent = ""; return; }
+  box.textContent = msg;
+  box.classList.toggle("error", !!isErr);
+  box.classList.remove("hidden");
+}
+
+async function refreshSpecial() {
+  if (!CALC.current || !showcase) return;
+  try {
+    const res = await fetch("/api/calc", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(calcPayload()),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    if (!Array.isArray(data.special)) {
+      setSpecialStatus("Server belum mengembalikan data Disorder — restart `python server.py` lalu refresh halaman (Ctrl+F5).", true);
+      return;
+    }
+    setSpecialStatus("");
+    renderSpecialResults(data.special);
+  } catch (e) {
+    setSpecialStatus(`Gagal hitung Disorder: ${e.message || "compute failed"}`, true);
+    for (const kind of SPECIAL_KIND_ORDER) {
+      const t = document.querySelector(`.sp-kind-total[data-kind="${kind}"]`);
+      if (t) t.textContent = "err";
+    }
+  }
+}
+
+function renderSpecialPanel() {
+  const box = $("#calc-special");
+  box.innerHTML = "";
+  box.classList.remove("hidden");
+
+  const panel = el("div", "special-panel");
+  const head = el("div", "special-head");
+  head.appendChild(el("h3", "", "Disorder / Polarity / Vortex"));
+  head.appendChild(el("span", "special-note", "per instance · total = damage × count"));
+  panel.appendChild(head);
+  panel.appendChild(el("div", "special-status hidden"));
+
+  const cards = el("div", "special-cards");
+  for (const kind of SPECIAL_KIND_ORDER) cards.appendChild(buildSpecialCard(kind));
+  panel.appendChild(cards);
+
+  const grand = el("div", "special-grand");
+  grand.innerHTML = `Total Disorder DMG: <b class="sp-grand-total">—</b>`;
+  panel.appendChild(grand);
+
+  panel.appendChild(el("p", "special-hint",
+    "Formula item 5 (chain sama dgn rotasi). Trigger tidak di-auto-deteksi: pilih elemen & durasi manual. " +
+    "\u201cAgent element\u201d = elemen karakter."));
+  box.appendChild(panel);
+}
+
+function specialField(label, node) {
+  const wrap = el("label", "sp-field");
+  wrap.appendChild(el("span", "sp-field-label", label));
+  wrap.appendChild(node);
+  return wrap;
+}
+
+function specialNumField(label, value, min, max, step, onChange) {
+  const inp = el("input", "sp-input");
+  inp.type = "number";
+  inp.min = min; inp.max = max; inp.step = step; inp.value = value;
+  const commit = () => {
+    let n = parseFloat(inp.value);
+    if (!Number.isFinite(n)) n = min;
+    if (n < min) n = min;
+    if (n > max) n = max;
+    onChange(n);
+  };
+  inp.addEventListener("input", commit);   // live tiap ketik (debounced)
+  inp.addEventListener("change", commit);  // commit saat blur/Enter
+  return specialField(label, inp);
+}
+
+function specialSelectField(label, value, options, onChange) {
+  const sel = el("select", "sp-input");
+  for (const opt of options) {
+    const o = el("option", "", esc(opt.label));
+    o.value = opt.value;
+    sel.appendChild(o);
+  }
+  sel.value = value;
+  sel.addEventListener("change", () => onChange(sel.value));
+  return specialField(label, sel);
+}
+
+function buildSpecialCard(kind) {
+  const card = el("div", `special-card special-card--${kind}`);
+  const head = el("div", "special-card-head");
+  head.appendChild(el("span", "special-card-title", SPECIAL_KINDS[kind].label));
+  const add = el("button", "special-add", "+ Add");
+  add.type = "button";
+  add.addEventListener("click", () => {
+    CALC.specials[kind].push(defaultSpec(kind));
+    renderSpecialPanel();
+    specialChanged();
+  });
+  head.appendChild(add);
+  card.appendChild(head);
+
+  const blocked = specialKindBlocked(kind);
+  if (blocked) card.classList.add("special-card--blocked");
+  const note = el("p", "special-card-note", SPECIAL_NOTES[kind]);
+  card.appendChild(note);
+  if (blocked) {
+    card.appendChild(el("p", "special-card-warn", "N/A for this Agent — not Yanagi / Nangong Yu."));
+  }
+
+  const rowsBox = el("div", "special-rows");
+  const list = CALC.specials[kind];
+  if (!list.length) rowsBox.appendChild(el("div", "special-empty", `No ${SPECIAL_KINDS[kind].label} instance.`));
+  list.forEach((spec, idx) => rowsBox.appendChild(buildSpecialRow(kind, spec, idx)));
+  card.appendChild(rowsBox);
+
+  const total = el("div", "special-total", "Total: ");
+  total.innerHTML += `<b class="sp-kind-total" data-kind="${kind}">—</b>`;
+  card.appendChild(total);
+  return card;
+}
+
+function buildSpecialRow(kind, spec, idx) {
+  const row = el("div", "special-row");
+
+  const elementOpts = [{ label: "Agent element", value: "" }]
+    .concat(SPECIAL_ELEMENTS.map((e) => ({ label: (ELEMENTS[e] && ELEMENTS[e].name) || e, value: e })));
+  row.appendChild(specialSelectField("Element", spec.element || "", elementOpts, (v) => {
+    spec.element = v; specialChanged();
+  }));
+
+  row.appendChild(specialNumField("Count", spec.count, 0, 9999, 1, (v) => {
+    spec.count = v; specialChanged();
+  }));
+
+  if (kind === "disorder" || kind === "polarity") {
+    row.appendChild(specialNumField("Remain (s)", spec.remaining_duration, 0, 120, 0.5, (v) => {
+      spec.remaining_duration = v; specialChanged();
+    }));
+  }
+  if (kind === "polarity") {
+    row.appendChild(specialNumField("Skill Lv", spec.skill_level, 0, 30, 1, (v) => {
+      spec.skill_level = v; specialChanged();
+    }));
+    row.appendChild(specialNumField("Nagi AP", spec.nagi_ap, 0, 9999, 1, (v) => {
+      spec.nagi_ap = v; specialChanged();
+    }));
+    row.appendChild(specialSelectField("Mindscape", String(spec.mindscape ?? ""), [
+      { label: "Auto", value: "" }, { label: "M0", value: "0" },
+      { label: "M2", value: "2" }, { label: "M6", value: "6" },
+    ], (v) => {
+      spec.mindscape = v === "" ? undefined : parseInt(v, 10);
+      specialChanged();
+    }));
+  }
+  if (kind === "vortex") {
+    row.appendChild(specialNumField("Duration (s)", spec.duration, 0, 120, 0.5, (v) => {
+      spec.duration = v; specialChanged();
+    }));
+    const frostWrap = el("label", "sp-field sp-check");
+    const cb = el("input");
+    cb.type = "checkbox";
+    cb.checked = !!spec.is_frost;
+    cb.addEventListener("change", () => { spec.is_frost = cb.checked; specialChanged(); });
+    frostWrap.appendChild(cb);
+    frostWrap.appendChild(el("span", "sp-field-label", "Frost (Miyabi)"));
+    row.appendChild(frostWrap);
+  }
+
+  const out = el("div", "sp-result", "—");
+  row.appendChild(out);
+
+  const del = el("button", "sp-del", "&#10005;");
+  del.type = "button";
+  del.title = "Remove";
+  del.addEventListener("click", () => {
+    CALC.specials[kind].splice(idx, 1);
+    renderSpecialPanel();
+    specialChanged();
+  });
+  row.appendChild(del);
+  return row;
+}
+
+function renderSpecialResults(results) {
+  const byKind = { disorder: [], polarity: [], vortex: [] };
+  for (const r of results || []) (byKind[r.kind] || byKind.disorder).push(r);
+
+  let grand = 0;
+  for (const kind of SPECIAL_KIND_ORDER) {
+    const rowEls = document.querySelectorAll(`.special-card--${kind} .special-row`);
+    const list = byKind[kind] || [];
+    let total = 0;
+    const blocked = specialKindBlocked(kind);
+    rowEls.forEach((rowEl, i) => {
+      const out = rowEl.querySelector(".sp-result");
+      const res = list[i];
+      if (!out) return;
+      if (blocked) {
+        out.innerHTML = `<span class="sp-err">n/a</span>`;
+        return;
+      }
+      const spec = (CALC.specials[kind] || [])[i];
+      const resolvedElem = spec && (spec.element || CALC.agentElement);
+      if (kind === "vortex" && resolvedElem === "Wind") {
+        out.innerHTML = `<span class="sp-err">0%</span><span class="sp-sub">Wind — tidak trigger</span>`;
+        return;
+      }
+      if (!res) { out.textContent = "—"; return; }
+      if (res.error) {
+        out.innerHTML = `<span class="sp-err">n/a</span>` +
+          `<span class="sp-sub">${esc(res.element || "invalid element")}</span>`;
+        return;
+      }
+      out.innerHTML = `<span class="sp-dmg">${fmtNum(res.total)}</span>` +
+        `<span class="sp-sub">${res.base_pct.toFixed(1)}% · ×${res.count}</span>`;
+      total += res.total;
+    });
+    const kindTotal = document.querySelector(`.sp-kind-total[data-kind="${kind}"]`);
+    if (kindTotal) kindTotal.textContent = (!blocked && list.length) ? fmtNum(total) : "—";
+    grand += total;
+  }
+  const grandEl = document.querySelector(".sp-grand-total");
+  if (grandEl) grandEl.textContent = fmtNum(grand);
+}
+
 function renderCalcResult(r) {
   const body = $("#calc-body");
   body.innerHTML = "";
+  if (r.avatar) CALC.agentElement = r.avatar.element || CALC.agentElement;
 
   // enemy summary strip
   const e = r.enemy;
@@ -294,6 +587,12 @@ function renderCalcResult(r) {
   }
 
   // damage table
+  if (Array.isArray(r.special)) {
+    setSpecialStatus("");
+    renderSpecialResults(r.special);
+  } else {
+    setSpecialStatus("Server belum mengembalikan data Disorder — restart `python server.py` lalu refresh halaman (Ctrl+F5).", true);
+  }
   if (!r.rows.length) {
     body.appendChild(el("div", "calc-empty",
       "No skill data to calculate (agent without gear?)."));
@@ -992,6 +1291,7 @@ async function loadShowcase(url) {
   $("#showcase").classList.add("hidden");
   $("#player").classList.add("hidden");
   $("#calc-section").classList.add("hidden");
+  $("#calc-special").classList.add("hidden");
   CALC.current = null;
   showResults();
   try {
@@ -1040,6 +1340,8 @@ async function boot() {
   });
   $("#calc-close").addEventListener("click", () => {
     $("#calc-section").classList.add("hidden");
+    $("#calc-special").classList.add("hidden");
+    clearTimeout(_specialTimer);
     CALC.current = null;
   });
   $("#btn-calc").addEventListener("click", () => {

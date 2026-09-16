@@ -4,6 +4,57 @@ Hasil audit formula Excel (`misc/[v3.1.0] okMuzzy's ZZZ Calculator.xlsx`,
 sheet `C1`/`BC1`–`C3` kolom P, `Anomaly Calcs`, `DPS Calcs`,
 `W-Engine Buffs`) vs `damage_calc.py`, 2026-09-14.
 
+## Selesai (2026-09-15 #5) — UI Disorder/Polarity/Vortex (item 5)
+
+- [x] **Integrasi UI** (rotation menyusul; sesuai permintaan fokus item 5
+      dulu):
+  - `server.py`: `calculate_avatar(..., specials=...)` + helper
+    `_compute_special_rows` — panggil `dc.build_special_rows` per spec
+    (chain formula sama dgn rotasi) pakai toggle yang baru dihitung;
+    balikin field `special`
+    `[{kind, element, base_pct, count, damage, total, error}]`
+    (`total = damage x count`, per instance). Elemen tak dikenal (mis.
+    Lumen/Frostburn) -> baris `error` (damage 0, UI tampil "n/a"),
+    BUKAN 500 — satu spec invalid tidak menggagalkan seluruh request.
+    Endpoint tetap `POST /api/calc` (body `specials` opsional).
+  - `site/index.html`: container `#calc-special` di calc section.
+  - `site/static/app.js`: panel `renderSpecialPanel()` — 3 kartu
+    (Disorder / Polarity Disorder / Vortex) dengan baris spec:
+    element (default "Agent element"), count, remain/duration, skill_lv +
+    nagi_ap + mindscape (polarity), is_frost (vortex), add/remove,
+    total per kartu + grand total. Hasil di-render `renderSpecialResults()`
+    (per-instance dmg + base% + grand total); perubahan input -> debounce
+    250ms -> `refreshSpecial()` tanpa re-render tabel hit (fokus input aman).
+    **Update**: number field pakai event `input` (live tiap ketik, bukan cuma
+    `change`/blur) + clamp min/max; ada baris status `.special-status` yang
+    kasih pesan jelas kalau server belum balikin `special` (server lama) atau
+    fetch gagal — sebelumnya diam-diam "—" (disangka ga ada output).
+  - **Aturan game (dikonfirmasi dari Excel `Anomaly Calcs`)**: `C54 =
+    IF(TeamSlot1="Miyabi","Frost",'C1'!$B$3)` label `B54="Attribute"` ->
+    elemen di formula Disorder/Vortex = **anomaly yang di-overwrite
+    (atribut karakter)**, `t = A54-A56` (durasi). Jadi elemen pemicu
+    (yang meng-override) harus BEDA — elemen sama cuma me-refresh, TIDAK
+    trigger Disorder. Guard UI:
+    - Disorder note: elemen = anomaly yang di-overwrite (biasanya elemen
+      karakter), pemicu harus beda.
+    - **Polarity di-gate** ke Tsukishiro Yanagi (1221) / Nangong Yu (1511)
+      saja — agent lain tampil `n/a` + warning (server tetap hitung, gate
+      murni UI).
+    - **Vortex**: elemen `Wind` -> `0% — tidak trigger` (butuh Windswept
+      (Wind) + anomaly non-Wind), note ditampilkan.
+  - Verifikasi UI (Playwright vs server user `:8220`): Miyabi -> polarity
+    `blocked` + warning + total `—`, disorder note tampil, vortex di-set
+    Wind -> `0% tidak trigger`, grand exclude yang n/a, 0 console error.
+  - `style.css`: styling panel special (kartu warna per tipe, field, total).
+  - Verifikasi: kalibrasi GT tetap PASS (0.025%/0.029%) + rotation selftest
+    PASS; POST /api/calc specials (Miyabi Ice, disorder t=10 base 525%,
+    vortex frost t=10 base 750%) cocok; smoke test Playwright end-to-end
+    (demo -> Calculate -> kartu render, add row + count x3 = 3x damage,
+    0 console error).
+  - Catatan parity: `enemy_stunned` untuk disorder/vortex tetap `False`
+    (sama dgn `build_special_rows`); refringe/base buff sumber belum ada
+    (default 0). Rotation builder menyusul.
+
 ## Selesai (2026-09-15 #4) — item 5
 
 - [x] **Item 5: Disorder / Polarity / Vortex** (okMuzzy 'Anomaly Calcs'

@@ -11,7 +11,12 @@ Endpoints:
   POST /api/calc         -> hitung stat panel + damage per skill utk 1 karakter showcase
                             body: {"showcase": <enka json>, "avatar_id": 1091,
                                    "enemy": "Tyrfing", "enemy_level": 60,
-                                   "stunned": false}
+                                   "stunned": false,
+                                   "specials": {"disorder": [...],
+                                                "polarity": [...],
+                                                "vortex": [...]}}  # opsional
+                            -> response nambah field `special` (baris
+                               Disorder/Polarity/Vortex per instance, item 5)
   GET /img/monster/<slug>-> proxy monster card WebP dari static.nanoka.cc (disk-cached)
   GET /ui/zzz/<file>     -> proxies https://enka.network/ui/zzz/<file> (disk-cached)
 
@@ -137,8 +142,15 @@ def build_calc_context() -> dict:
 
 
 def calculate_avatar(api_showcase: dict, avatar_id: int, enemy_name: str,
-                     enemy_level: int = 60, stunned: bool = False) -> dict:
-    """Full pipeline untuk satu karakter dari showcase Enka -> JSON untuk UI."""
+                     enemy_level: int = 60, stunned: bool = False,
+                     specials: dict | None = None) -> dict:
+    """Full pipeline untuk satu karakter dari showcase Enka -> JSON untuk UI.
+
+    `specials` opsional = {"disorder": [...], "polarity": [...], "vortex": [...]}
+    (item 5) — list spec per instance; hasilnya dikembalikan di field `special`
+    (per-instance, `total` = damage x count). Tanpa auto-deteksi: trigger harus
+    dikirim eksplisit oleh UI.
+    """
     ctx = build_calc_context()
     calc, dc = ctx["calc"], ctx["dc"]
     db = ctx["monster_db"]
@@ -160,6 +172,7 @@ def calculate_avatar(api_showcase: dict, avatar_id: int, enemy_name: str,
         ctx["skill_index"], ctx["name_map"], ctx["textmap"], ctx["locale"],
     )
     rows = compute_all_damage_standalone(snap, enemy, stunned)
+    special_rows = _compute_special_rows(dc, snap, enemy, specials)
 
     # toggles aktif utk transparency UI
     toggles = []
@@ -194,7 +207,51 @@ def calculate_avatar(api_showcase: dict, avatar_id: int, enemy_name: str,
         },
         "stunned": stunned,
         "rows": rows,
+        "special": special_rows,
     }
+
+
+_SPECIAL_KINDS = ("disorder", "polarity", "vortex")
+
+
+def _compute_special_rows(dc, snapshot: dict, enemy, specials: dict | None) -> list:
+    """Baris sintetis Disorder/Polarity/Vortex (item 5) utk UI.
+
+    Tiap spec dihitung lewat `dc.build_special_rows` (chain formula sama dgn
+    rotasi) satu per satu supaya satu elemen invalid tidak menggagalkan
+    seluruh request — baris error dikembalikan dgn `error` terisi.
+    Toggle diambil dari `_last_toggles` yang barusan diisi
+    compute_all_damage. Return list {kind, element, base_pct, count, damage,
+    total, error}.
+    """
+    if not specials:
+        return []
+    out = []
+    for kind in _SPECIAL_KINDS:
+        for spec in specials.get(kind) or []:
+            element = spec.get("element") or snapshot.get("element")
+            count = float(spec.get("count", 1) or 0)
+            try:
+                raw = dc.build_special_rows(snapshot, enemy, _last_toggles, {kind: [spec]})
+                r = raw[0]
+            except (KeyError, ValueError) as e:
+                out.append({
+                    "kind": kind, "element": element, "base_pct": 0.0,
+                    "count": count, "damage": 0.0, "total": 0.0,
+                    "error": str(e),
+                })
+                continue
+            damage = float(r.get("non_crit", 0.0))
+            out.append({
+                "kind": kind,
+                "element": r.get("hit_element"),
+                "base_pct": float(r.get("damage_pct", 0.0)),
+                "count": float(r.get("count", 1) or 0),
+                "damage": damage,
+                "total": damage * float(r.get("count", 1) or 0),
+                "error": None,
+            })
+    return out
 
 
 # re-implement compute_all_damage (run.py) supaya server gak import run.py
@@ -389,14 +446,18 @@ class Handler(BaseHTTPRequestHandler):
             enemy = payload.get("enemy", "Tyrfing")
             enemy_level = int(payload.get("enemy_level", 60))
             stunned = bool(payload.get("stunned", False))
+            specials = payload.get("specials") or None
             if not showcase or avatar_id is None:
                 self._send_json({"error": "body butuh 'showcase' dan 'avatar_id'"}, 400)
                 return
             result = calculate_avatar(showcase, int(avatar_id), str(enemy),
-                                       enemy_level=enemy_level, stunned=stunned)
+                                       enemy_level=enemy_level, stunned=stunned,
+                                       specials=specials)
             self._send_json(result)
         except LookupError as e:
             self._send_json({"error": str(e)}, 404)
+        except ValueError as e:
+            self._send_json({"error": str(e)}, 400)
         except KeyError as e:
             self._send_json({"error": f"missing data: {e}"}, 400)
         except Exception as e:
