@@ -136,6 +136,21 @@ sheet `C1`/`BC1`–`C3` kolom P, `Anomaly Calcs`, `DPS Calcs`,
       + GT **969**, Reset → **4/4** + GT **1.086**; Ye Shunguang **6/6**
       (dulu 1/6); POST `/api/calc` = 2 saat buka (1 + 1 override, no loop);
       0 console/page error.
+- [x] **Panel Rotation → bahasa Inggris** (permintaan user): 16 string di
+      `.special-panel.rot-panel` di-Inggriskan — judul fase `… entries`,
+      empty state `No hits yet.`, tombol `Fill from this rotation` (dulu
+      "Isi dari rotasi ini"), status JSON `Rotation loaded.` /
+      `Copied to clipboard.`, hint team, error `Unrecognized rotation
+      format.`, hint `slot times differ` / `skipped slot(s)`, `Remove`.
+      Edit ini inert (teks saja): angka tidak berubah karenanya — kenaikan
+      total rotasi/team (Miyabi 1.354.629,6 → 1.473.220,7 = +8,75%,
+      Yixuan 1.625.849,7 → 1.831.059,3 = +12,62%) murni efek default Buffs
+      semua-ON di atas. Verifikasi: `node --check` exit 0; Playwright —
+      0 kata Indonesia tersisa di panel, 0 console/page error; angka UI
+      disamakan lewat API (`calculate_team_rotation` + override Miyabi =
+      **3.099.070,4** == angka UI 3.099.070; selisih panel rotasi 1-slot
+      1.483.284 = 1.473.220,7 + baris polarity 10.063,7 → lihat catatan open
+      di bawah).
 - **Catatan open (temuan verifikasi, bukan rumus):** baris `polarity` default
   panel ikut ke payload rotasi — `rotationPayload()` tidak menerapkan
   `specialKindBlocked`, jadi untuk agent non-Yanagi/Nangong Yu total rotasi
