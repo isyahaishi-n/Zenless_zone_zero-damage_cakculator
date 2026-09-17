@@ -1,0 +1,25 @@
+# fly.toml — jalur A (backend Python proses-panjang di Fly.io).
+# Catatan RAM: context kalkulator ±540 MB, jadi shared-cpu-1x/1GB minimum aman.
+# Ganti `app` dengan nama unik milik Anda, lalu: fly launch --no-deploy && fly deploy
+app = "zzz-showcase-api"
+primary_region = "sin"   # Singapura (dekat Indonesia)
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  HOST = "0.0.0.0"
+  PORT = "8080"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "suspend"
+  auto_start_machines = true
+  # 0 = murah (mesin mati saat idle, request pertama kena cold start ±3-8s);
+  # naikkan ke 1 kalau mau selalu panas.
+  min_machines_running = 0
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "1gb"

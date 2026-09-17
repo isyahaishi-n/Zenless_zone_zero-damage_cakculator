@@ -1,0 +1,3 @@
+# Jalur all-in-one di Vercel: stdlib-only, tidak ada dependency eksternal.
+# File ini tetap ada supaya Vercel mengenali proyek ini sebagai Python.
+# (server.py, damage_calc.py, dst. semuanya stdlib + file data lokal)

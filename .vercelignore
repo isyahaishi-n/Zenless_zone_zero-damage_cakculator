@@ -1,0 +1,16 @@
+# .vercelignore — yang TIDAK diupload ke Vercel (bukan kebutuhan runtime web).
+# PENTING: data/ dumps/ site/ JANGAN dikecualikan (dipakai server.py saat jalan).
+/misc/
+/.kilo/
+/.vscode/
+/.imgcache/
+/__pycache__/
+/docs/
+/scripts/
+/rotations/
+/Zenless Zone Zero (ZZZ) leveling calculator.html
+/Zenless Zone Zero Battle Records _ HoYoLAB Tools.html
+/todo.md
+/UPDATE.md
+/run.py
+/.kilo/worktrees/

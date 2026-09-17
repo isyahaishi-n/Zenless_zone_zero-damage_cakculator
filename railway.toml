@@ -1,0 +1,9 @@
+[build]
+dockerfile = "Dockerfile"
+
+[deploy]
+restartLimit = 3
+
+[env]
+PORT = "8080"
+PYTHONUNBUFFERED = "1"

@@ -2,3 +2,6 @@
 __pycache__
 .kilo
 .vscode
+
+# artefak staging build Vercel (deploy/vercel_stage.py) — jangan di-commit
+api/_bundle/

@@ -1,0 +1,17 @@
+# .dockerignore — buang yang bukan kebutuhan runtime (data/ dumps/ site/ TETAP ikut).
+.git
+.kilo
+.vscode
+.imgcache
+__pycache__
+misc
+docs
+*.rar
+*.xlsx
+Zenless Zone Zero (ZZZ) leveling calculator.html
+Zenless Zone Zero Battle Records _ HoYoLAB Tools.html
+# Vercel-only — backend Railway pakai Dockerfile + serve_public.py
+/api/
+/vercel.json
+/.vercelignore
+/deploy/vercel_stage.py
