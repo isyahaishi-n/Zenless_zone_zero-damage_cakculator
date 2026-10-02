@@ -43,11 +43,12 @@ PROP_ID_TO_NAME: dict[int, str] = {
     32001: "RpRecover_Base", 32002: "RpRecover_Ratio", 32003: "RpRecover_Delta",
     32201: "SkipDefDamageRatio_Base", 32203: "SkipDefDamageRatio_Delta",
     32301: "AddedDamageRatio_Wind_Base", 32303: "AddedDamageRatio_Wind_Delta",
-    # 3.2.0 baru (sistem Sharpness/Laceration; EN: "Automatic Sharpness
-    # Accumulation" & "Laceration DMG" — belum dipakai formula damage, hanya
-    # biar stat panel gak KeyError). Nama internal dari Enka property.json:
-    # 213=SharpCriticalDamage, 324=EpRecover.
+    # 3.2.0 (sistem Sharpness/Laceration; EN: "Automatic Sharpness
+    # Accumulation" & "Laceration DMG" — dipakai formula damage utk Armorer).
+    # Nama internal dari Enka property.json: 213=SharpCriticalDamage,
+    # 324=EpRecover.
     21301: "SharpCriticalDamage_Base",
+    21303: "SharpCriticalDamage_Delta",
     32401: "EpRecover_Base",
 }
 
@@ -448,6 +449,12 @@ def final_stats(s: Layer) -> dict[str, float]:
             prop(s, "AddedDamageRatio_Wind_Base")
             + prop(s, "AddedDamageRatio_Wind_Delta"),
 
+        # Laceration DMG (Armorer 3.2; mis. Claret base 150% — basis points
+        # di layer, dikonversi ke % via PCT_PANEL_STATS di bawah)
+        "Laceration DMG":
+            prop(s, "SharpCriticalDamage_Base")
+            + prop(s, "SharpCriticalDamage_Delta"),
+
         # Sheer damage bonus
         "Sheer DMG":
             prop(s, "SkipDefDamageRatio_Base")
@@ -472,6 +479,14 @@ def load_skill_data(base_dir: Path) -> tuple[Any, dict, dict]:
 # AvatarSkillTemplateTb (Index == GLENCFMNKMF). 5 = Core Skill has no
 # multipliers there — its stat bonuses are already applied via CoreEnhancementProps.
 MULTIPLIER_SKILL_INDICES = (0, 1, 2, 3, 6)
+
+# Maim: damage instance terpisah khusus Armorer (wiki) — hit di bawah
+# EX Special (skill index 1) yang trigger saat konsumsi Gash.
+# {avatar_id: hit_id}. Bukti eksplisit: des template
+# (Claret_Property_MaimWound_Desc_DamageRatio -> {Skill:1611013}).
+# Label hit dikoreksi di snapshot (heuristik salah menaruhnya di nama
+# sub-skill lain) agar jelas di tabel per-skill.
+MAIM_HIT_IDS = {1611: 1611013}
 
 
 def print_skill_damage(
@@ -522,6 +537,7 @@ def print_skill_damage(
 PCT_PANEL_STATS = {
     "CRIT Rate", "CRIT DMG", "PEN Ratio", "Physical DMG", "Fire DMG",
     "Ice DMG", "Electric DMG", "Ether DMG", "Wind DMG", "Sheer DMG",
+    "Laceration DMG",
 }
 
 
@@ -622,6 +638,18 @@ def compute_avatar_snapshot(
             "level": eff_lvl,
             "hits": hits,
         }
+
+    # Maim (Claret): hit 1611013 bukti eksplisit dari des template
+    # (Claret_Property_MaimWound_Desc_DamageRatio) — heuristik penamaan
+    # salah mengelompokkannya ke "Cleaving Gold and Iron". Label dikoreksi
+    # agar damage instance kondisional ini jelas di tabel per-skill.
+    # (skill_type/element sudah dihitung sebelum rename — tidak berubah.)
+    maim_hit_id = MAIM_HIT_IDS.get(avatar_id)
+    if maim_hit_id is not None:
+        for h in (skills.get("1") or {}).get("hits", []):
+            if int(h["hit_id"]) == maim_hit_id:
+                h["name"] = "Maim"
+                break
 
     return {
         "avatar_id": avatar_id,

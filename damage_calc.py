@@ -58,6 +58,17 @@ from dataclasses import dataclass, field
 
 
 # ---------------------------------------------------------------------------
+# Config per-karakter: konversi initial CRIT DMG -> initial CRIT Rate
+# (core passive). Format {avatar_id: scale} — tiap 1% initial CRIT DMG
+# menambah `scale`% initial CRIT Rate, diaplikasikan SEBELUM combat mods.
+#   - Claret (1611) "Banquet of Pale Blood": scale 0.35.
+# Karakter masa depan dengan formula mirip tapi scale beda tinggal tambah
+# entry di sini — tidak perlu ubek-ubek logic.
+# ---------------------------------------------------------------------------
+CRITDMG_TO_CRITRATE = {1611: 0.35}
+
+
+# ---------------------------------------------------------------------------
 # Loaders — 3 file mapped (source of truth conditional effects)
 # ---------------------------------------------------------------------------
 
@@ -193,8 +204,10 @@ def _map_named_stat(stat: str, unit: str) -> str:
     u = (unit or "").strip().lower()
     explicit = {
         "atk": "atk_flat" if u == "flat" else "atk_pct",
+        "def": "def_flat" if u == "flat" else "def_pct",
         "crit rate": "crit_rate_pct",
         "crit dmg": "crit_dmg_pct",
+        "laceration dmg": "laceration_dmg_pct",
         "pen ratio": "pen_ratio_pct",
         "pen": "pen_flat",
         # Impact: flat masuk bucket daze (Impact_combat = panel + flat adds,
@@ -239,6 +252,8 @@ _DRIVE_FORMULA_KEYS = {
     "team_crit_dmg_percent": "crit_dmg_pct",  # team-wide, termasuk equipper
     "crit_rate_percent": "crit_rate_pct",
     "atk_percent": "atk_pct",
+    "def_percent": "def_pct",
+    "laceration_dmg_percent": "laceration_dmg_pct",
     "sheer_damage_percent": "sheer_dmg_pct",
     # Anomaly DMG buckets (okMuzzy Anomaly Calcs C58-C63):
     # - "Anomaly DMG%" (generik, semua tipe: mis. Notes From the Chained
@@ -609,8 +624,15 @@ class CombatModifiers:
     """
     atk_bonus_pct_cond: float = 0.0
     atk_flat_cond: float = 0.0
+    # DEF kondisional (basis damage Armorer) — pola sama kayak ATK bucket.
+    def_bonus_pct_cond: float = 0.0
+    def_flat_cond: float = 0.0
     crit_rate_bonus_pct_cond: float = 0.0
     crit_dmg_bonus_pct_cond: float = 0.0
+    # Laceration DMG (hanya Armorer): menggantikan CRIT DMG di kalkulasi
+    # crit (Claret core passive "Banquet of Pale Blood"). Bucket kondisional
+    # mis. Remnant Edge (+25% Laceration DMG, 40s).
+    laceration_dmg_pct: float = 0.0
     damage_bonus_pct_cond: float = 0.0
     skill_mult_bonus_pct: float = 0.0
     pen_ratio_bonus_pct: float = 0.0
@@ -677,6 +699,9 @@ class CombatModifiers:
         simple = [
             ("ATK%_cond", self.atk_bonus_pct_cond),
             ("ATK_flat_cond", self.atk_flat_cond),
+            ("DEF%_cond", self.def_bonus_pct_cond),
+            ("DEF_flat_cond", self.def_flat_cond),
+            ("Laceration DMG%", self.laceration_dmg_pct),
             ("CRIT Rate%_cond", self.crit_rate_bonus_pct_cond),
             ("CRIT DMG%_cond", self.crit_dmg_bonus_pct_cond),
             ("DMG%", self.damage_bonus_pct_cond),
@@ -732,6 +757,12 @@ def aggregate_modifiers(toggles: list, skill_type: str = None,
             mods.atk_bonus_pct_cond += v
         elif t.stat == "atk_flat":
             mods.atk_flat_cond += v
+        elif t.stat == "def_pct":
+            mods.def_bonus_pct_cond += v
+        elif t.stat == "def_flat":
+            mods.def_flat_cond += v
+        elif t.stat == "laceration_dmg_pct":
+            mods.laceration_dmg_pct += v
         elif t.stat == "crit_rate_pct":
             mods.crit_rate_bonus_pct_cond += v
         elif t.stat == "crit_dmg_pct":
@@ -1381,6 +1412,10 @@ def compute_final_damage(
     is_sheer_agent: bool = False,
     hp_panel: float = 0.0,
     sheer_force: float = 0.0,
+    # Armorer (3.2, mis. Claret):
+    is_armorer_agent: bool = False,
+    def_panel: float = 0.0,
+    laceration_dmg_panel_pct: float = 0.0,
 ) -> dict:
     """Formula lengkap: stat panel + combat modifiers -> non-crit & crit.
     `dmg_bonus_panel_pct` = elemental DMG bonus dari stat panel yang cocok
@@ -1402,21 +1437,60 @@ def compute_final_damage(
     - DEFmult = 1 (hit Sheer ignore DEF, C1!P3 `IF(B33="YES", 1, ...)`).
     - multiplier Sheer DMG aktif: × (1 + Σ Sheer DMG + Σ{elem} SDMG).
       (Bucket sheer_dmg_pct agregasi keduanya; scope elemen tetap jalan.)
+
+    Armorer agent (`is_armorer_agent=True`, profession Armorer — flag via
+    snapshot profession, pertama: Claret 1611):
+    - MV_stat = DEF_combat (Claret_UniqueSkill_02_Desc: "skill DMG
+      Multipliers are based on DEF"; "All DMG dealt by Claret's skills is
+      Sharp DMG").
+    - CRIT: Laceration DMG dipakai SEBAGAI PENGGANTI CRIT DMG
+      ("When a CRIT is triggered, Laceration DMG is used in place of CRIT
+      DMG for the damage calculation").
+    - Multi-CRIT: CRIT Rate di atas 100% tidak wasted — crit pertama
+      guaranteed, lalu SATU additional Laceration check dengan chance =
+      excess CRIT Rate ("If CRIT Rate exceeds 100% and a CRIT is triggered,
+      an additional Laceration check is performed, with the Laceration
+      chance equal to the excess CRIT Rate"). Cap CR 200% (satu check
+      tambahan); floor 5% tetap.
+      Expected = non_crit * (1 + P1*L + P1*P2*L), P1 = min(CR,100)/100,
+      P2 = min(max(CR-100,0),100)/100, L = LacerationDMG/100.
+    - Core passive Claret ("Banquet of Pale Blood"): tiap 1% initial CRIT
+      DMG -> +0.35% initial CRIT Rate. Diaplikasikan caller ke
+      crit_rate_panel_pct SEBELUM combat mods; gating per-agent via
+      config dict CRITDMG_TO_CRITRATE (bukan semua Armorer).
+    - Maim Claret (hit 1611013, "Maim DMG Multiplier" di UI EX Special
+      01, 1625.6% DEF di skill Lv12) adalah damage instance terpisah &
+      kondisional (trigger konsumsi Gash) — tampil di tabel per-skill
+      dengan label koreksi "Maim" (bukti eksplisit des template;
+      heuristik nama salah menaruhnya di "Cleaving Gold and Iron"),
+      BUKAN hidden hit; excluded dari rotasi otomatis karena
+      kondisional.
     """
     mods = mods or CombatModifiers()
 
     atk_combat = atk_panel * (1 + mods.atk_bonus_pct_cond / 100) + mods.atk_flat_cond
     hp_combat = hp_panel  # tidak ada buff HP% kondisional di mapped files
+    def_combat = def_panel * (1 + mods.def_bonus_pct_cond / 100) + mods.def_flat_cond
     skill_mult = skill_mult_pct + mods.skill_mult_bonus_pct
     dmg_bonus = dmg_bonus_panel_pct + mods.damage_bonus_pct_cond
-    if is_sheer_agent:
+    if is_armorer_agent:
+        # Armorer 3.2: skill multiplier berbasis DEF (Claret_UniqueSkill_02_Desc)
+        mv_stat = def_combat
+    elif is_sheer_agent:
         # MV stat khusus sheer (C1!B34): 0.3*ATK + 0.1*HP + Sheer Force
         mv_stat = atk_combat * 0.3 + hp_combat * 0.1 + sheer_force
     else:
         mv_stat = atk_combat
     # CRIT Rate/DMG floor game (okMuzzy v3.1.0: MIN(1, CR) & MAX(0.5, CD);
     # clamp CR 0-100 tetap): CR efektif minimal 5%, CD efektif minimal 50%.
-    crit_rate_combat = min(max(crit_rate_panel_pct + mods.crit_rate_bonus_pct_cond, 5.0), 100.0)
+    # Armorer: multi-CRIT — cap CR 200% (satu additional Laceration check),
+    # bukan 100%; Laceration DMG ganti CRIT DMG.
+    if is_armorer_agent:
+        crit_rate_combat = min(max(crit_rate_panel_pct + mods.crit_rate_bonus_pct_cond, 5.0), 200.0)
+        laceration_combat = laceration_dmg_panel_pct + mods.laceration_dmg_pct
+    else:
+        crit_rate_combat = min(max(crit_rate_panel_pct + mods.crit_rate_bonus_pct_cond, 5.0), 100.0)
+        laceration_combat = 0.0
     crit_dmg_combat = max(crit_dmg_panel_pct + mods.crit_dmg_bonus_pct_cond, 50.0)
 
     if is_sheer_agent:
@@ -1458,13 +1532,27 @@ def compute_final_damage(
                 * (1 + dmg_bonus / 100) * def_mult * res_mult
                 * stun_mult * dmg_taken_mult
                 * final_mult_mult * direct_dmg_mult * sheer_dmg_mult)
-    crit = non_crit * (1 + crit_dmg_combat / 100)
+    if is_armorer_agent:
+        # Laceration DMG ganti CRIT DMG (Claret_UniqueSkill_02_Desc)
+        crit = non_crit * (1 + laceration_combat / 100)
+    else:
+        crit = non_crit * (1 + crit_dmg_combat / 100)
 
-    expected = non_crit * (1 - crit_rate_combat / 100
-                           + (crit_rate_combat / 100) * (1 + crit_dmg_combat / 100))
+    if is_armorer_agent:
+        # Expected multi-CRIT: crit pertama (P1, cap 100%) + SATU additional
+        # laceration check (P2 = excess CR, cap 100%) yang hanya jalan kalau
+        # crit pertama trigger ("and a CRIT is triggered").
+        p1 = min(crit_rate_combat, 100.0) / 100
+        p2 = min(max(crit_rate_combat - 100.0, 0.0), 100.0) / 100
+        lac = laceration_combat / 100
+        expected = non_crit * (1 + p1 * lac + p1 * p2 * lac)
+    else:
+        expected = non_crit * (1 - crit_rate_combat / 100
+                               + (crit_rate_combat / 100) * (1 + crit_dmg_combat / 100))
 
     return {
         "atk_combat": atk_combat,
+        "def_combat": def_combat,
         "mv_stat": mv_stat,
         "skill_mult_pct": skill_mult,
         "dmg_bonus_pct": dmg_bonus,
@@ -1477,6 +1565,7 @@ def compute_final_damage(
         "sheer_dmg_mult": sheer_dmg_mult,
         "crit_rate_combat_pct": crit_rate_combat,
         "crit_dmg_combat_pct": crit_dmg_combat,
+        "laceration_dmg_combat_pct": laceration_combat,
         "non_crit": non_crit,
         "crit": crit,
         "expected": expected,
@@ -1538,6 +1627,18 @@ def compute_all_damage(snapshot: dict, enemy: "EnemyStats",
     # Agent Data; Rupture ids 1051/1371/1441/1471/1531 = Yidhari/Yixuan/
     # Norano/BanYue/SPBilly — persis daftar sheer agent di Excel).
     is_sheer = (snapshot.get("profession") == "Rupture")
+    # Armorer = profession "Armorer" (3.2; pertama: Claret 1611).
+    is_armorer = (snapshot.get("profession") == "Armorer")
+
+    # Core passive konversi CRIT DMG -> CRIT Rate (config CRITDMG_TO_CRITRATE):
+    # Claret (1611) "Banquet of Pale Blood" (Claret_UniqueSkill_02_Desc):
+    # "For every 1% of Claret's initial CRIT DMG, her initial CRIT Rate
+    # increases by 0.35%." — selalu aktif, diaplikasikan di level profession
+    # Armorer; gating per-agent via dict (bukan semua Armorer).
+    crit_rate_panel_pct = stats.get("CRIT Rate", 0.0)
+    conv_scale = CRITDMG_TO_CRITRATE.get(snapshot.get("avatar_id"))
+    if conv_scale:
+        crit_rate_panel_pct += conv_scale * stats.get("CRIT DMG", 0.0)
 
     # Impact_combat utk Daze (C1!B35) — dihitung sekali, pakai semua toggle
     # enabled tanpa scope (buff Impact umumnya unscoped).
@@ -1563,7 +1664,7 @@ def compute_all_damage(snapshot: dict, enemy: "EnemyStats",
                 enemy=enemy,
                 element=hit_element,
                 skill_type=hit_skill_type,
-                crit_rate_panel_pct=stats.get("CRIT Rate", 0.0),
+                crit_rate_panel_pct=crit_rate_panel_pct,
                 dmg_bonus_panel_pct=stats.get(f"{hit_element} DMG", 0.0),
                 pen_ratio_pct=stats.get("PEN Ratio", 0.0),
                 pen_flat=stats.get("PEN", 0.0),
@@ -1574,6 +1675,9 @@ def compute_all_damage(snapshot: dict, enemy: "EnemyStats",
                 is_sheer_agent=is_sheer,
                 hp_panel=stats.get("HP", 0.0),
                 sheer_force=stats.get("Sheer Force", 0.0),
+                is_armorer_agent=is_armorer,
+                def_panel=stats.get("DEF", 0.0),
+                laceration_dmg_panel_pct=stats.get("Laceration DMG", 0.0),
             )
             # Daze final (C1!Q3) — per hit, scoped Daze% bucket + StunRes
             # musuh per elemen hit.

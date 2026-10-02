@@ -1242,7 +1242,7 @@ function renderCalcResult(r) {
     }
     tr.innerHTML = `
       <td>${skillCell(row)}</td>
-      <td>${esc(row.hit)}</td>
+      <td>${row.hit_id === 1611013 ? `<span class="hit-maim">${esc(row.hit)}</span>` : esc(row.hit)}</td>
       <td class="num">${row.damage_pct.toFixed(1)}%</td>
       <td class="num">${row.daze_pct > 0 ? fmtNum(row.daze) : "—"}</td>
       <td class="num">${row.buildup_pct > 0 ? fmtNum(row.buildup) : "—"}</td>

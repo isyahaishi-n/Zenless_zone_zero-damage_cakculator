@@ -1937,6 +1937,17 @@ main#results,
 .calc-table tr.daze-row td { color: var(--color-muted); font-style: italic; }
 .calc-table tr.anomaly-row td { background: rgba(180, 88, 255, 0.06); }
 .calc-table tr.anomaly-row td:nth-child(3) { color: #b458ff; }
+/* Maim (Claret) — tiru warna teks "MAIM!!" in-game: gradien merah bold italic */
+.calc-table .hit-maim {
+  font-weight: 800;
+  font-style: italic;
+  letter-spacing: 1px;
+  background: linear-gradient(180deg, #ff8f7a 0%, #f02828 50%, #a80000 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
 
 .calc-loading {
   padding: 30px;
